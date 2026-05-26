@@ -8,7 +8,7 @@ import kotlin.math.exp
 import kotlin.math.sin
 import kotlin.random.Random
 
-class SoundManager(context: Context) {
+class SoundManager(private val context: Context) {
     
     private val soundPool: SoundPool
     private var popSoundId: Int = -1
