@@ -17,7 +17,12 @@ import com.bubblepop.game.R
 import com.bubblepop.game.manager.SettingsManager
 import com.bubblepop.game.manager.SoundManager
 import com.bubblepop.game.model.Bubble
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.min
+import kotlin.math.sin
 import kotlin.math.sqrt
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 class BubbleView @JvmOverloads constructor(
@@ -119,7 +124,7 @@ class BubbleView @JvmOverloads constructor(
     private fun updateBubble(bubble: Bubble, time: Long) {
         // Wobble effect
         bubble.wobblePhase += bubble.wobbleSpeed
-        val wobbleOffset = kotlin.math.sin(Math.toRadians(bubble.wobblePhase.toDouble())).toFloat() * bubble.wobbleAmplitude
+        val wobbleOffset = sin(bubble.wobblePhase * PI / 180f).toFloat() * bubble.wobbleAmplitude
         
         // Move bubble
         bubble.x += bubble.velocityX + wobbleOffset * 0.3f
@@ -187,9 +192,9 @@ class BubbleView @JvmOverloads constructor(
         // Draw pop particles
         for (i in 0 until 6) {
             val angle = i * 60f + progress * 90f
-            val rad = Math.toRadians(angle.toDouble())
-            val px = bubble.x + kotlin.math.cos(rad).toFloat() * expandedRadius * 1.2f
-            val py = bubble.y + kotlin.math.sin(rad).toFloat() * expandedRadius * 1.2f
+            val rad = angle * PI / 180f
+            val px = bubble.x + cos(rad).toFloat() * expandedRadius * 1.2f
+            val py = bubble.y + sin(rad).toFloat() * expandedRadius * 1.2f
             val particleSize = bubble.radius * 0.15f * (1 - progress)
             
             paint.alpha = alpha
@@ -198,9 +203,9 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun lightenColor(color: Int, amount: Int): Int {
-        val r = Math.min(255, Color.red(color) + amount)
-        val g = Math.min(255, Color.green(color) + amount)
-        val b = Math.min(255, Color.blue(color) + amount)
+        val r = min(255, Color.red(color) + amount)
+        val g = min(255, Color.green(color) + amount)
+        val b = min(255, Color.blue(color) + amount)
         return Color.rgb(r, g, b)
     }
     

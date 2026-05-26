@@ -2,10 +2,10 @@ package com.bubblepop.game.manager
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
 import android.media.SoundPool
+import kotlin.math.PI
+import kotlin.math.exp
+import kotlin.math.sin
 import kotlin.random.Random
 
 class SoundManager(context: Context) {
@@ -43,10 +43,10 @@ class SoundManager(context: Context) {
         // Create a short "pop" sound: quick frequency sweep with decay
         for (i in samples.indices) {
             val t = i.toFloat() / sampleRate
-            val freq = 800f - t * 6000f // Sweep from 800Hz down
-            val envelope = Math.exp(-t * 60).toFloat() // Quick decay
+            val freq = 800f - t * 6000f
+            val envelope = exp(-t * 60).toFloat()
             val noise = (Random.nextFloat() * 2f - 1f) * 0.3f
-            val value = (Math.sin(2 * Math.PI * freq * t.toDouble()).toFloat() + noise) * envelope
+            val value = (sin(2 * PI * freq * t.toDouble()).toFloat() + noise) * envelope
             samples[i] = (value * Short.MAX_VALUE).toInt().toShort()
         }
         
