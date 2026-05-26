@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">捏泡泡解压</string>
+    <string name="settings">设置</string>
+    <string name="settings_title">游戏设置</string>
+    <string name="sound_effect">音效</string>
+    <string name="sound_effect_desc">捏破泡泡时播放音效</string>
+    <string name="vibration">震动</string>
+    <string name="vibration_desc">捏破泡泡时震动反馈</string>
+    <string name="background">背景</string>
+    <string name="background_desc">选择游戏背景</string>
+    <string name="background_default">默认</string>
+    <string name="background_dark">深色</string>
+    <string name="background_sunset">日落</string>
+    <string name="background_ocean">海洋</string>
+    <string name="pop_count">已捏破: %1$d</string>
+    <string name="back">返回</string>
+</resources>

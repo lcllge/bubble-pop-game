@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    
+    <SwitchPreferenceCompat
+        app:key="pref_sound"
+        app:title="@string/sound_effect"
+        app:summary="@string/sound_effect_desc"
+        app:defaultValue="true"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        app:key="pref_vibration"
+        app:title="@string/vibration"
+        app:summary="@string/vibration_desc"
+        app:defaultValue="true"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        app:key="pref_background"
+        app:title="@string/background"
+        app:summary="@string/background_desc"
+        app:defaultValue="default"
+        app:entries="@array/background_entries"
+        app:entryValues="@array/background_values"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>
