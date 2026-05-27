@@ -732,9 +732,8 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun calculateScore(bubble: Bubble): Int {
-        val halfScreen = screenWidth * 0.5f
         return when {
-            bubble.radius >= halfScreen -> 3
+            bubble.radius >= maxRadius -> 3
             bubble.radius >= maxRadius * 0.8f -> 1
             else -> 0
         }

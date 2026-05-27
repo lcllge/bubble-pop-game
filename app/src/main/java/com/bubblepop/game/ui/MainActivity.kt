@@ -67,14 +67,27 @@ class MainActivity : AppCompatActivity() {
         val rank2Text = dialog.findViewById<TextView>(R.id.rank2_text)
         val rank3Text = dialog.findViewById<TextView>(R.id.rank3_text)
         
-        if (scores[0] > 0) {
-            rank1Text.text = getString(R.string.rank_1, scores[0])
-            rank2Text.text = getString(R.string.rank_2, scores.getOrElse(1) { 0 })
-            rank3Text.text = getString(R.string.rank_3, scores.getOrElse(2) { 0 })
-        } else {
+        val nonZeroScores = scores.filter { it > 0 }
+        
+        if (nonZeroScores.isEmpty()) {
             rank1Text.text = getString(R.string.no_scores)
             rank2Text.visibility = View.GONE
             rank3Text.visibility = View.GONE
+        } else {
+            rank1Text.visibility = View.VISIBLE
+            rank2Text.visibility = View.VISIBLE
+            rank3Text.visibility = View.VISIBLE
+            rank1Text.text = getString(R.string.rank_1, nonZeroScores[0])
+            if (nonZeroScores.size > 1) {
+                rank2Text.text = getString(R.string.rank_2, nonZeroScores[1])
+            } else {
+                rank2Text.text = getString(R.string.no_scores)
+            }
+            if (nonZeroScores.size > 2) {
+                rank3Text.text = getString(R.string.rank_3, nonZeroScores[2])
+            } else {
+                rank3Text.text = getString(R.string.no_scores)
+            }
         }
         
         dialog.findViewById<Button>(R.id.back_button).setOnClickListener {
