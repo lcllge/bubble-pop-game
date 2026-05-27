@@ -1365,6 +1365,7 @@ class BubbleView @JvmOverloads constructor(
         val speed = if (isRare) 12f else 8f
         
         when (type) {
+            ExplosionType.NONE -> {}
             ExplosionType.FIRE -> spawnFireExplosion(bubble, count, speed)
             ExplosionType.LIGHTNING -> spawnLightningExplosion(bubble, count, speed)
             ExplosionType.THUNDER -> spawnThunderExplosion(bubble, count, speed)
