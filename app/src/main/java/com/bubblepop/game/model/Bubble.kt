@@ -22,16 +22,14 @@ data class Bubble(
 ) {
     companion object {
         private val BUBBLE_COLORS = listOf(
-            Color.parseColor("#FF6B6B"),
-            Color.parseColor("#FFA500"),
-            Color.parseColor("#FFD93D"),
-            Color.parseColor("#6BCB77"),
-            Color.parseColor("#4D96FF"),
-            Color.parseColor("#9B59B6"),
-            Color.parseColor("#FF69B4"),
-            Color.parseColor("#00BCD4"),
-            Color.parseColor("#E91E63"),
-            Color.parseColor("#8BC34A")
+            Color.parseColor("#FFB3A7"),
+            Color.parseColor("#FFD4A5"),
+            Color.parseColor("#FFF3C4"),
+            Color.parseColor("#B8E6B8"),
+            Color.parseColor("#A5C8E6"),
+            Color.parseColor("#D4A5E6"),
+            Color.parseColor("#FFB3D9"),
+            Color.parseColor("#A5E6E6")
         )
         
         fun createRandom(screenWidth: Int, screenHeight: Int, minRadius: Float = 20f, maxRadius: Float = 60f): Bubble {

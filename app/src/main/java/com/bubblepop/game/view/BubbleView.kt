@@ -61,6 +61,7 @@ class BubbleView @JvmOverloads constructor(
     private var isGameOver = false
     private var isPaused = false
     private var lastSpawnTime = 0L
+    private var totalScoreLoaded = false
     
     // Press interaction state
     private var pressedBubble: Bubble? = null
@@ -126,6 +127,12 @@ class BubbleView @JvmOverloads constructor(
         screenWidth = w
         screenHeight = h
         
+        if (!totalScoreLoaded) {
+            totalScore = settingsManager.totalScore
+            totalScoreLoaded = true
+            onTotalScoreChanged?.invoke(totalScore)
+        }
+        
         if (bubbles.isEmpty() && !isGameOver) {
             repeat(MIN_BUBBLES) {
                 bubbles.add(Bubble.createRandom(w, h))
@@ -180,8 +187,9 @@ class BubbleView @JvmOverloads constructor(
             }
             
             // Check game over
-            if (bubbles.count { !it.isPopped } >= MAX_BUBBLES && 
-                bubbles.all { it.radius >= glowThreshold || it.isPopped }) {
+            val activeBubbles = bubbles.filter { !it.isPopped }
+            if (activeBubbles.size >= MAX_BUBBLES && 
+                activeBubbles.all { it.radius >= glowThreshold }) {
                 triggerGameOver()
             }
         }
@@ -571,6 +579,7 @@ class BubbleView @JvmOverloads constructor(
         val scorePoints = calculateScore(bubble)
         score += scorePoints
         totalScore += scorePoints
+        settingsManager.totalScore = totalScore
         onScoreChanged?.invoke(score)
         onTotalScoreChanged?.invoke(totalScore)
         
