@@ -510,7 +510,7 @@ class BubbleView @JvmOverloads constructor(
             val glowRadius = bubble.radius * (1.3f + breathe * 0.3f)
             val glowAlpha = (60 + breathe * 40).toInt()
             
-            val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, bubble.color, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+            val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
             glowPaint.shader = glowGradient
             glowPaint.alpha = glowAlpha
             canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
@@ -521,8 +521,8 @@ class BubbleView @JvmOverloads constructor(
         val gradient = RadialGradient(
             bubble.x - bubble.radius * 0.3f, bubble.y - bubble.radius * 0.3f,
             bubble.radius * 1.1f,
-            lightenColor(bubble.color, 80),
-            bubble.color,
+            intArrayOf(lightenColor(bubble.color, 80), bubble.color),
+            floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
         paint.shader = gradient
@@ -685,9 +685,8 @@ class BubbleView @JvmOverloads constructor(
         val glowRadius = bubble.radius * (1.8f + breathe * 0.5f)
         val glowGradient = RadialGradient(
             bubble.x, bubble.y, glowRadius,
-            lightenColor(bubble.color, 100),
-            bubble.color,
-            Color.TRANSPARENT,
+            intArrayOf(lightenColor(bubble.color, 100), bubble.color, Color.TRANSPARENT),
+            floatArrayOf(0f, 0.5f, 1f),
             Shader.TileMode.CLAMP
         )
         glowPaint.shader = glowGradient
@@ -713,8 +712,8 @@ class BubbleView @JvmOverloads constructor(
         
         val innerGrad = RadialGradient(
             0f, -bubble.radius * 0.3f, bubble.radius,
-            lightenColor(bubble.color, 100),
-            bubble.color,
+            intArrayOf(lightenColor(bubble.color, 100), bubble.color),
+            floatArrayOf(0f, 1f),
             Shader.TileMode.CLAMP
         )
         paint.shader = innerGrad
@@ -773,9 +772,8 @@ class BubbleView @JvmOverloads constructor(
         // 主爆炸体
         val gradient = RadialGradient(
             bubble.x, bubble.y, expandedRadius,
-            lightenColor(bubble.color, 120),
-            bubble.color,
-            Color.TRANSPARENT,
+            intArrayOf(lightenColor(bubble.color, 120), bubble.color, Color.TRANSPARENT),
+            floatArrayOf(0f, 0.5f, 1f),
             Shader.TileMode.CLAMP
         )
         paint.shader = gradient
