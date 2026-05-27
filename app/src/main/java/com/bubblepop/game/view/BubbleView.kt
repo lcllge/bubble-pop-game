@@ -586,6 +586,8 @@ class BubbleView @JvmOverloads constructor(
         )
         paint.shader = gradient
         paint.alpha = (bubble.alpha * 240).toInt()
+        paint.style = Paint.Style.FILL
+        paint.strokeWidth = 0f
         
         when (bubble.shape) {
             BubbleShape.CIRCLE -> canvas.drawCircle(drawX, drawY, bubble.radius, paint)
@@ -737,7 +739,7 @@ class BubbleView @JvmOverloads constructor(
         val breathe = (sin(System.currentTimeMillis() / 150.0).toFloat() + 1f) / 2f
         val p = pressProgress
         
-        // 辉光呼吸效果 - 无圆线
+        // 辉光呼吸效果
         val glowRadius = bubble.radius * (2f + breathe * 0.8f + p * 0.5f)
         val glowAlpha = (100 + breathe * 80 + p * 100).toInt()
         val glowGradient = RadialGradient(
@@ -765,11 +767,14 @@ class BubbleView @JvmOverloads constructor(
         canvas.drawCircle(bubble.x, bubble.y, glow2Radius, glowPaint)
         glowPaint.shader = null
         
-        // 球体本身 - 压缩变形
-        val compressScale = 1f - p * 0.15f
+        // 等比缩小 + 抖动效果
+        val shrinkFactor = 1f - p * 0.3f
+        val shakeX = if (p > 0.2f) sin(System.currentTimeMillis() / 30.0).toFloat() * p * 3f else 0f
+        val shakeY = if (p > 0.2f) cos(System.currentTimeMillis() / 25.0).toFloat() * p * 3f else 0f
+        
         canvas.save()
-        canvas.translate(bubble.x, bubble.y)
-        canvas.scale(1f / compressScale, compressScale)
+        canvas.translate(bubble.x + shakeX, bubble.y + shakeY)
+        canvas.scale(shrinkFactor, shrinkFactor)
         
         val innerGrad = RadialGradient(
             0f, -bubble.radius * 0.3f, bubble.radius,
@@ -783,7 +788,6 @@ class BubbleView @JvmOverloads constructor(
         canvas.drawCircle(0f, 0f, bubble.radius, paint)
         paint.shader = null
         
-        // 内部巴洛克装饰
         canvas.restore()
         drawBaroqueOnBubble(canvas, bubble)
         
@@ -791,10 +795,10 @@ class BubbleView @JvmOverloads constructor(
         highlightPaint.color = Color.WHITE
         highlightPaint.alpha = 120
         canvas.drawOval(
-            bubble.x - bubble.radius * 0.3f,
-            bubble.y - bubble.radius * 0.45f,
-            bubble.x,
-            bubble.y - bubble.radius * 0.15f,
+            bubble.x + shakeX - bubble.radius * 0.3f * shrinkFactor,
+            bubble.y + shakeY - bubble.radius * 0.45f * shrinkFactor,
+            bubble.x + shakeX,
+            bubble.y + shakeY - bubble.radius * 0.15f * shrinkFactor,
             highlightPaint
         )
         
@@ -974,7 +978,7 @@ class BubbleView @JvmOverloads constructor(
         val isRare = bubble.isHiddenRare
         
         if (settingsManager.soundEnabled) {
-            soundManager.playPop(isBig || isRare)
+            soundManager.playExplosion(bubble.explosionType, isRare)
         }
         
         if (settingsManager.vibrationEnabled) {
@@ -1609,6 +1613,7 @@ class BubbleView @JvmOverloads constructor(
         val isRare = bubble.isHiddenRare
         val text = if (isRare) "★ ${bubble.neonText} ★" else bubble.neonText
         val color = type.primaryColor
+        val borderColor = type.secondaryColor
         
         // 根据球球大小决定文字效果
         val sizeRatio = bubble.radius / maxRadius
@@ -1620,6 +1625,7 @@ class BubbleView @JvmOverloads constructor(
                 x = screenWidth / 2f,
                 y = screenHeight / 2f,
                 color = color,
+                borderColor = borderColor,
                 life = 1f,
                 decay = if (isRare) 0.006f else 0.009f,
                 textSize = min(screenWidth * 0.15f, 80f),
@@ -1633,7 +1639,8 @@ class BubbleView @JvmOverloads constructor(
                 text = type.label,
                 x = screenWidth / 2f,
                 y = screenHeight / 2f + 120f,
-                color = type.secondaryColor,
+                color = borderColor,
+                borderColor = color,
                 life = 1f,
                 decay = 0.01f,
                 textSize = 40f,
@@ -1649,6 +1656,7 @@ class BubbleView @JvmOverloads constructor(
                 x = bubble.x,
                 y = bubble.y,
                 color = color,
+                borderColor = borderColor,
                 life = 1f,
                 decay = if (isRare) 0.008f else 0.012f,
                 textSize = baseSize,
@@ -1665,6 +1673,7 @@ class BubbleView @JvmOverloads constructor(
                 x = screenWidth / 2f,
                 y = screenHeight / 2f,
                 color = Color.parseColor("#FFD700"),
+                borderColor = Color.parseColor("#FF69B4"),
                 life = 1f,
                 decay = 0.01f,
                 textSize = 60f,
@@ -1686,23 +1695,32 @@ class BubbleView @JvmOverloads constructor(
             val currentSize = effect.textSize * effect.scale
             
             neonTextPaint.textSize = currentSize
-            neonTextPaint.alpha = alpha
+            neonTextPaint.textAlign = Paint.Align.CENTER
             
-            // 霓虹描边效果
+            // 外层霓虹光晕（大尺寸模糊）
             neonTextPaint.style = Paint.Style.STROKE
-            neonTextPaint.strokeWidth = currentSize * 0.08f
+            neonTextPaint.strokeWidth = currentSize * 0.2f
+            neonTextPaint.alpha = alpha / 4
+            neonTextPaint.color = effect.borderColor
+            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            
+            // 中层霓虹描边
+            neonTextPaint.style = Paint.Style.STROKE
+            neonTextPaint.strokeWidth = currentSize * 0.12f
+            neonTextPaint.alpha = (alpha * 0.7f).toInt()
+            neonTextPaint.color = effect.borderColor
+            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            
+            // 内部细描边（白色增强对比）
+            neonTextPaint.style = Paint.Style.STROKE
+            neonTextPaint.strokeWidth = currentSize * 0.04f
+            neonTextPaint.alpha = alpha
             neonTextPaint.color = Color.WHITE
             canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
             
-            // 内部填充
+            // 文字填充（主色）
             neonTextPaint.style = Paint.Style.FILL
-            neonTextPaint.color = effect.color
-            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
-            
-            // 外发光
-            neonTextPaint.style = Paint.Style.STROKE
-            neonTextPaint.strokeWidth = currentSize * 0.15f
-            neonTextPaint.alpha = alpha / 3
+            neonTextPaint.alpha = alpha
             neonTextPaint.color = effect.color
             canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
             
@@ -1785,6 +1803,7 @@ class BubbleView @JvmOverloads constructor(
         var text: String,
         var x: Float, var y: Float,
         var color: Int,
+        var borderColor: Int = Color.WHITE,
         var life: Float, var decay: Float,
         var textSize: Float,
         var isRare: Boolean = false,

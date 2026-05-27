@@ -3,6 +3,7 @@ package com.bubblepop.game.manager
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
+import com.bubblepop.game.model.ExplosionType
 import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
@@ -188,6 +189,254 @@ class SoundManager(private val context: Context) {
         if (loaded && cheerSoundId > 0) {
             soundPool.play(cheerSoundId, 1f, 1f, 0, 0, 1f)
         }
+    }
+    
+    fun playExplosion(type: ExplosionType, isRare: Boolean = false) {
+        if (!loaded) return
+        val soundId = when (type) {
+            ExplosionType.FIRE -> generateAndPlayFireSound(isRare)
+            ExplosionType.LIGHTNING -> generateAndPlayLightningSound(isRare)
+            ExplosionType.THUNDER -> generateAndPlayThunderSound(isRare)
+            ExplosionType.WIND -> generateAndPlayWindSound(isRare)
+            ExplosionType.RAIN -> generateAndPlayRainSound(isRare)
+            ExplosionType.DARK -> generateAndPlayDarkSound(isRare)
+            ExplosionType.LIGHT -> generateAndPlayLightSound(isRare)
+            ExplosionType.ICE -> generateAndPlayIceSound(isRare)
+            ExplosionType.VOID -> generateAndPlayVoidSound(isRare)
+            ExplosionType.STAR -> generateAndPlayStarSound(isRare)
+        }
+    }
+    
+    private fun generateAndPlayFireSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.5f else 0.3f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 10).toFloat()
+            val crackle = (Random.nextFloat() * 2f - 1f) * 0.5f
+            val boom = sin(2 * PI * 200 * t.toDouble()).toFloat() * exp(-t * 20).toFloat()
+            val value = (crackle + boom) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.7f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayLightningSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.4f else 0.2f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 25).toFloat()
+            val zap = if (Random.nextFloat() > 0.5f) sin(2 * PI * 3000 * t.toDouble()).toFloat() else 0f
+            val buzz = sin(2 * PI * 800 * t.toDouble()).toFloat() * 0.3f
+            val value = (zap + buzz) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.6f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayThunderSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.8f else 0.5f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 5).toFloat()
+            val rumble = sin(2 * PI * 80 * t.toDouble()).toFloat()
+            val crash = (Random.nextFloat() * 2f - 1f) * 0.4f * exp(-t * 15).toFloat()
+            val value = (rumble + crash) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.8f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayWindSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.6f else 0.4f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 6).toFloat()
+            val whoosh = sin(2 * PI * (300 + sin(t * 10) * 200) * t.toDouble()).toFloat()
+            val noise = (Random.nextFloat() * 2f - 1f) * 0.3f
+            val value = (whoosh * 0.6f + noise * 0.4f) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.5f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayRainSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.5f else 0.3f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 8).toFloat()
+            val drip = sin(2 * PI * 1200 * t.toDouble()).toFloat() * exp(-t * 30).toFloat()
+            val splash = (Random.nextFloat() * 2f - 1f) * 0.4f * exp(-t * 12).toFloat()
+            val value = (drip + splash) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.5f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayDarkSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.7f else 0.4f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 7).toFloat()
+            val drone = sin(2 * PI * 60 * t.toDouble()).toFloat()
+            val whisper = sin(2 * PI * 400 * t.toDouble() + sin(t * 5) * PI).toFloat() * 0.2f
+            val value = (drone + whisper) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.6f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayLightSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.6f else 0.35f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 8).toFloat()
+            val chime = sin(2 * PI * 1500 * t.toDouble()).toFloat() * 0.5f
+            val bell = sin(2 * PI * 2200 * t.toDouble()).toFloat() * 0.3f
+            val sparkle = sin(2 * PI * 3000 * t.toDouble()).toFloat() * 0.2f * exp(-t * 20).toFloat()
+            val value = (chime + bell + sparkle) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.4f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayIceSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.5f else 0.3f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 12).toFloat()
+            val crack = sin(2 * PI * 4000 * t.toDouble()).toFloat() * exp(-t * 40).toFloat()
+            val shatter = (Random.nextFloat() * 2f - 1f) * 0.3f * exp(-t * 20).toFloat()
+            val value = (crack + shatter) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.5f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayVoidSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.8f else 0.5f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 4).toFloat()
+            val void = sin(2 * PI * 30 * t.toDouble()).toFloat()
+            val suck = sin(2 * PI * (500 - t * 400) * t.toDouble()).toFloat() * 0.3f
+            val value = (void + suck) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.7f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
+    }
+    
+    private fun generateAndPlayStarSound(isRare: Boolean): Int {
+        val sampleRate = 22050
+        val duration = if (isRare) 0.7f else 0.4f
+        val numSamples = (sampleRate * duration).toInt()
+        val samples = ShortArray(numSamples)
+        
+        for (i in samples.indices) {
+            val t = i.toFloat() / sampleRate
+            val envelope = exp(-t * 6).toFloat()
+            val twinkle = sin(2 * PI * 1800 * t.toDouble()).toFloat() * 0.4f
+            val sparkle = sin(2 * PI * 2500 * t.toDouble() + sin(t * 8) * PI).toFloat() * 0.3f
+            val magic = sin(2 * PI * 3200 * t.toDouble()).toFloat() * 0.2f * exp(-t * 15).toFloat()
+            val value = (twinkle + sparkle + magic) * envelope
+            samples[i] = (value * Short.MAX_VALUE * 0.4f).toInt().toShort()
+        }
+        
+        val path = writeWav(samples, sampleRate)
+        val soundId = soundPool.load(path, 1)
+        soundPool.setOnLoadCompleteListener { _, _, status ->
+            if (status == 0) soundPool.play(soundId, 1f, 1f, 0, 0, 1f)
+        }
+        return soundId
     }
     
     fun release() {
