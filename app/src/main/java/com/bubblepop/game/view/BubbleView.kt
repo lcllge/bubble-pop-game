@@ -56,6 +56,11 @@ class BubbleView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = 3f
     }
+    private val celebrationPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     
     private val settingsManager: SettingsManager
         get() = (context.applicationContext as com.bubblepop.game.BubblePopApplication).settingsManager
@@ -92,7 +97,9 @@ class BubbleView @JvmOverloads constructor(
     private var celebrationMode = 0
     private var celebrationProgress = 0f
     private var celebrationAnimator: ValueAnimator? = null
+    private var celebrationText = ""
     private val particles = mutableListOf<Particle>()
+    private val fireworks = mutableListOf<Firework>()
     private val goldenRays = mutableListOf<GoldenRay>()
     private val shockwaves = mutableListOf<Shockwave>()
     private val neonTextEffects = mutableListOf<NeonTextEffect>()
@@ -993,16 +1000,19 @@ class BubbleView @JvmOverloads constructor(
             score >= 100 && (score - lastMilestoneScore) >= 100 -> {
                 lastMilestoneScore = score / 100 * 100
                 celebrationMode = 3
+                celebrationText = "🎉 太厉害了！"
                 triggerCelebration()
             }
             score >= 50 && lastMilestoneScore < 50 -> {
                 lastMilestoneScore = 50
                 celebrationMode = 2
+                celebrationText = "🎊 恭喜恭喜！"
                 triggerCelebration()
             }
             score >= 30 && lastMilestoneScore < 30 -> {
                 lastMilestoneScore = 30
                 celebrationMode = 1
+                celebrationText = "👏 不错哦！"
                 triggerCelebration()
             }
         }
@@ -1011,6 +1021,7 @@ class BubbleView @JvmOverloads constructor(
     private fun triggerCelebration() {
         isPaused = true
         celebrationProgress = 0f
+        fireworks.clear()
         
         val animator = ValueAnimator.ofFloat(0f, 1f)
         animator.duration = when (celebrationMode) {
@@ -1021,28 +1032,24 @@ class BubbleView @JvmOverloads constructor(
         }
         animator.addUpdateListener { anim ->
             celebrationProgress = anim.animatedValue as Float
-            spawnCelebrationParticles()
+            // 持续发射礼花
+            if (Random.nextFloat() > 0.6f) {
+                launchFirework()
+            }
         }
         animator.addListener(object : android.animation.AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: android.animation.Animator) {
                 isPaused = false
                 celebrationMode = 0
+                fireworks.clear()
             }
         })
         animator.start()
         celebrationAnimator = animator
         
-        if (celebrationMode >= 2) {
-            repeat(24) {
-                goldenRays.add(GoldenRay(
-                    x = screenWidth / 2f,
-                    y = screenHeight / 2f,
-                    angle = it * 15f,
-                    length = 0f,
-                    alpha = 1f,
-                    decay = 0.006f
-                ))
-            }
+        // 初始礼花
+        repeat(3 + celebrationMode) {
+            launchFirework()
         }
         
         if (settingsManager.soundEnabled) {
@@ -1051,9 +1058,7 @@ class BubbleView @JvmOverloads constructor(
         }
     }
     
-    private fun spawnCelebrationParticles() {
-        if (Random.nextFloat() > 0.3f) return
-        
+    private fun launchFirework() {
         val colors = listOf(
             Color.parseColor("#FF1744"),
             Color.parseColor("#FF6D00"),
@@ -1064,19 +1069,21 @@ class BubbleView @JvmOverloads constructor(
             Color.parseColor("#D500F9"),
             Color.parseColor("#FF4081"),
             Color.parseColor("#E040FB"),
-            Color.parseColor("#00CED1")
+            Color.parseColor("#FFD700")
         )
+        val mainColor = colors.random()
+        val startX = Random.nextFloat() * screenWidth * 0.6f + screenWidth * 0.2f
+        val startY = screenHeight + 20f
+        val targetY = Random.nextFloat() * screenHeight * 0.4f + screenHeight * 0.1f
         
-        particles.add(Particle(
-            x = Random.nextFloat() * screenWidth,
-            y = screenHeight + 10f,
-            vx = Random.nextFloat() * 8f - 4f,
-            vy = -(Random.nextFloat() * 15f + 10f),
-            color = colors.random(),
-            size = Random.nextFloat() * 8f + 3f,
-            life = 1f,
-            decay = Random.nextFloat() * 0.012f + 0.006f,
-            type = Random.nextInt(3)
+        fireworks.add(Firework(
+            x = startX,
+            y = startY,
+            targetY = targetY,
+            color = mainColor,
+            state = FireworkState.RISING,
+            progress = 0f,
+            particles = mutableListOf()
         ))
     }
     
@@ -1134,27 +1141,131 @@ class BubbleView @JvmOverloads constructor(
         
         val progress = celebrationProgress
         
-        if (celebrationMode >= 2) {
-            for (ray in goldenRays) {
-                ray.length = progress * screenWidth * 0.9f
-                ray.alpha = 1f - progress * 0.7f
-                
-                val rad = ray.angle * PI / 180f
-                val endX = ray.x + cos(rad).toFloat() * ray.length
-                val endY = ray.y + sin(rad).toFloat() * ray.length
-                
-                paint.color = Color.argb((ray.alpha * 200).toInt(), 255, 255, 255)
-                paint.strokeWidth = 4f + progress * 6f
-                paint.style = Paint.Style.STROKE
-                canvas.drawLine(ray.x, ray.y, endX, endY, paint)
+        // 更新和绘制礼花
+        updateAndDrawFireworks(canvas)
+        
+        // 庆祝文字
+        if (progress > 0.1f && celebrationText.isNotEmpty()) {
+            val textAlpha = ((progress - 0.1f) / 0.3f).coerceIn(0f, 1f)
+            val textSize = when (celebrationMode) {
+                1 -> 60f
+                2 -> 80f
+                3 -> 100f
+                else -> 60f
             }
+            
+            celebrationPaint.textSize = textSize
+            celebrationPaint.textAlign = Paint.Align.CENTER
+            celebrationPaint.alpha = (textAlpha * 255).toInt()
+            celebrationPaint.color = Color.WHITE
+            
+            // 文字阴影
+            celebrationPaint.setShadowLayer(15f, 0f, 0f, Color.parseColor("#FF4081"))
+            canvas.drawText(celebrationText, screenWidth / 2f, screenHeight / 2f, celebrationPaint)
+            celebrationPaint.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+            
+            // 分数显示
+            val scoreText = "得分: $score"
+            celebrationPaint.textSize = textSize * 0.4f
+            celebrationPaint.alpha = (textAlpha * 200).toInt()
+            celebrationPaint.color = Color.parseColor("#FFD700")
+            canvas.drawText(scoreText, screenWidth / 2f, screenHeight / 2f + textSize * 0.8f, celebrationPaint)
         }
         
-        if (celebrationMode >= 3) {
-            val breathe = (sin(progress * PI * 4f).toFloat() + 1f) / 2f
-            paint.color = Color.argb((breathe * 60).toInt(), 255, 100, 200)
-            paint.style = Paint.Style.FILL
-            canvas.drawColor(paint.color)
+        paint.style = Paint.Style.FILL
+    }
+    
+    private fun updateAndDrawFireworks(canvas: Canvas) {
+        fireworks.removeAll { it.state == FireworkState.EXPLODED && it.particles.isEmpty() }
+        
+        for (fw in fireworks) {
+            when (fw.state) {
+                FireworkState.RISING -> {
+                    fw.y += (fw.y - fw.targetY) * -0.12f
+                    fw.progress += 0.03f
+                    
+                    // 上升拖尾
+                    trailPaint.color = fw.color
+                    trailPaint.alpha = 180
+                    canvas.drawCircle(fw.x, fw.y, 3f, trailPaint)
+                    
+                    if (fw.y <= fw.targetY) {
+                        fw.state = FireworkState.EXPLODING
+                        fw.progress = 0f
+                        // 爆炸生成粒子
+                        val particleCount = 40 + celebrationMode * 15
+                        for (i in 0 until particleCount) {
+                            val angle = i * (360f / particleCount) + Random.nextFloat() * 20f
+                            val rad = angle * PI / 180f
+                            val speed = Random.nextFloat() * 6f + 2f
+                            fw.particles.add(FireworkParticle(
+                                x = fw.x,
+                                y = fw.y,
+                                vx = cos(rad).toFloat() * speed,
+                                vy = sin(rad).toFloat() * speed,
+                                color = fw.color,
+                                life = 1f,
+                                decay = Random.nextFloat() * 0.015f + 0.008f,
+                                size = Random.nextFloat() * 4f + 2f
+                            ))
+                        }
+                        // 内层不同颜色
+                        for (i in 0 until 15) {
+                            val angle = i * (360f / 15f)
+                            val rad = angle * PI / 180f
+                            val speed = Random.nextFloat() * 3f + 1f
+                            fw.particles.add(FireworkParticle(
+                                x = fw.x,
+                                y = fw.y,
+                                vx = cos(rad).toFloat() * speed,
+                                vy = sin(rad).toFloat() * speed,
+                                color = Color.WHITE,
+                                life = 1f,
+                                decay = 0.02f,
+                                size = Random.nextFloat() * 3f + 1f
+                            ))
+                        }
+                    }
+                }
+                FireworkState.EXPLODING -> {
+                    fw.progress += 0.02f
+                    fw.particles.removeAll { it.life <= 0 }
+                    
+                    for (p in fw.particles) {
+                        p.x += p.vx
+                        p.y += p.vy
+                        p.vy += 0.06f  // 重力
+                        p.vx *= 0.98f
+                        p.life -= p.decay
+                        
+                        paint.color = p.color
+                        paint.alpha = (p.life * 220).toInt()
+                        paint.style = Paint.Style.FILL
+                        canvas.drawCircle(p.x, p.y, p.size * p.life, paint)
+                        
+                        // 闪光效果
+                        if (p.life > 0.5f) {
+                            val sparkle = sin(p.life * PI * 6f).toFloat() * 0.5f + 0.5f
+                            paint.alpha = (p.life * sparkle * 100).toInt()
+                            canvas.drawCircle(p.x, p.y, p.size * p.life * 1.5f, paint)
+                        }
+                    }
+                }
+                FireworkState.EXPLODED -> {
+                    fw.particles.removeAll { it.life <= 0 }
+                    for (p in fw.particles) {
+                        p.x += p.vx
+                        p.y += p.vy
+                        p.vy += 0.06f
+                        p.life -= p.decay
+                        
+                        paint.color = p.color
+                        paint.alpha = (p.life * 180).toInt()
+                        paint.style = Paint.Style.FILL
+                        canvas.drawCircle(p.x, p.y, p.size * p.life, paint)
+                    }
+                }
+            }
         }
         
         paint.style = Paint.Style.FILL
@@ -1596,7 +1707,7 @@ class BubbleView @JvmOverloads constructor(
         val isRare = bubble.isHiddenRare
         val text = if (isRare) "★ ${bubble.neonText} ★" else bubble.neonText
         val color = type.primaryColor
-        val borderColor = type.secondaryColor
+        val borderColor = bubble.color  // 外层边框颜色与小球颜色一致
         
         // 根据球球大小决定文字效果
         val sizeRatio = bubble.radius / maxRadius
@@ -1656,7 +1767,7 @@ class BubbleView @JvmOverloads constructor(
                 x = screenWidth / 2f,
                 y = screenHeight / 2f,
                 color = Color.parseColor("#FFD700"),
-                borderColor = Color.parseColor("#FF69B4"),
+                borderColor = bubble.color,
                 life = 1f,
                 decay = 0.01f,
                 textSize = 60f,
@@ -1677,35 +1788,43 @@ class BubbleView @JvmOverloads constructor(
             val alpha = (effect.life * 255).toInt()
             val currentSize = effect.textSize * effect.scale
             
+            // 计算文字宽度，确保不超出屏幕
             neonTextPaint.textSize = currentSize
             neonTextPaint.textAlign = Paint.Align.CENTER
+            val textWidth = neonTextPaint.measureText(effect.text)
+            val halfWidth = textWidth / 2f
+            
+            // 限制x坐标在屏幕范围内
+            val clampedX = effect.x.coerceIn(halfWidth + 20f, screenWidth - halfWidth - 20f)
+            // 限制y坐标
+            val clampedY = effect.y.coerceIn(currentSize + 20f, screenHeight - 20f)
             
             // 外层霓虹光晕（大尺寸模糊）
             neonTextPaint.style = Paint.Style.STROKE
             neonTextPaint.strokeWidth = currentSize * 0.2f
             neonTextPaint.alpha = alpha / 4
             neonTextPaint.color = effect.borderColor
-            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            canvas.drawText(effect.text, clampedX, clampedY, neonTextPaint)
             
             // 中层霓虹描边
             neonTextPaint.style = Paint.Style.STROKE
             neonTextPaint.strokeWidth = currentSize * 0.12f
             neonTextPaint.alpha = (alpha * 0.7f).toInt()
             neonTextPaint.color = effect.borderColor
-            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            canvas.drawText(effect.text, clampedX, clampedY, neonTextPaint)
             
             // 内部细描边（白色增强对比）
             neonTextPaint.style = Paint.Style.STROKE
             neonTextPaint.strokeWidth = currentSize * 0.04f
             neonTextPaint.alpha = alpha
             neonTextPaint.color = Color.WHITE
-            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            canvas.drawText(effect.text, clampedX, clampedY, neonTextPaint)
             
             // 文字填充（主色）
             neonTextPaint.style = Paint.Style.FILL
             neonTextPaint.alpha = alpha
             neonTextPaint.color = effect.color
-            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            canvas.drawText(effect.text, clampedX, clampedY, neonTextPaint)
             
             neonTextPaint.style = Paint.Style.FILL
             neonTextPaint.alpha = 255
@@ -1733,6 +1852,7 @@ class BubbleView @JvmOverloads constructor(
         bubbles.clear()
         particles.clear()
         goldenRays.clear()
+        fireworks.clear()
         shockwaves.clear()
         neonTextEffects.clear()
         score = 0
@@ -1741,6 +1861,7 @@ class BubbleView @JvmOverloads constructor(
         isPaused = false
         celebrationMode = 0
         celebrationProgress = 0f
+        celebrationText = ""
         edgeGlowAlpha = 0f
         isPressing = false
         pressedBubble = null
@@ -1792,5 +1913,20 @@ class BubbleView @JvmOverloads constructor(
         var isRare: Boolean = false,
         var scale: Float = 0.3f,
         var targetScale: Float = 1.8f
+    )
+    
+    enum class FireworkState { RISING, EXPLODING, EXPLODED }
+    
+    data class Firework(
+        var x: Float, var y: Float, var targetY: Float,
+        var color: Int,
+        var state: FireworkState,
+        var progress: Float,
+        val particles: MutableList<FireworkParticle>
+    )
+    
+    data class FireworkParticle(
+        var x: Float, var y: Float, var vx: Float, var vy: Float,
+        var color: Int, var life: Float, var decay: Float, var size: Float
     )
 }
