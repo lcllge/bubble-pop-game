@@ -723,7 +723,7 @@ class BubbleView @JvmOverloads constructor(
         }
         
         if (settingsManager.vibrationEnabled) {
-            val duration = if (isBig) 80 else 30
+            val duration = if (isBig) 80L else 30L
             vibrate(duration)
         }
         
@@ -771,7 +771,7 @@ class BubbleView @JvmOverloads constructor(
                 else -> 2000L
             }
             addUpdateListener {
-                celebrationProgress = it.animatedValue as Float
+                celebrationProgress = it.animatedValue as? Float ?: 0f
                 spawnCelebrationParticles()
             }
             addListener(object : android.animation.AnimatorListenerAdapter() {
