@@ -23,7 +23,6 @@ import com.bubblepop.game.manager.SoundManager
 import com.bubblepop.game.model.Bubble
 import com.bubblepop.game.model.BubbleShape
 import com.bubblepop.game.model.ExplosionType
-import com.bubblepop.game.model.NEON_TEXTS
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -537,7 +536,7 @@ class BubbleView @JvmOverloads constructor(
         val attrGlowRadius = bubble.radius * (1.6f + breathe * 0.3f)
         val attrGlowAlpha = if (bubble.isHiddenRare) (120 + breathe * 80).toInt() else (70 + breathe * 40).toInt()
         val attrColor = bubble.explosionType.primaryColor
-        val attrGlow = RadialGradient(drawX, drawY, attrGlowRadius, intArrayOf(attrGlowColor, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        val attrGlow = RadialGradient(drawX, drawY, attrGlowRadius, intArrayOf(attrColor, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
         glowPaint.shader = attrGlow
         glowPaint.alpha = attrGlowAlpha
         canvas.drawCircle(drawX, drawY, attrGlowRadius, glowPaint)
