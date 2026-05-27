@@ -12,6 +12,7 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityMainBinding
     private lateinit var scoreText: TextView
+    private lateinit var totalScoreText: TextView
     private lateinit var finalScoreText: TextView
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,17 +21,23 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         scoreText = binding.scoreText
+        totalScoreText = binding.totalScoreText
         finalScoreText = binding.finalScoreText
-        updateScoreText(0)
+        updateScoreText(0, 0)
         
         binding.bubbleView.onScoreChanged = { score ->
-            updateScoreText(score)
+            updateScoreText(score, binding.bubbleView.getTotalScore())
+        }
+        
+        binding.bubbleView.onTotalScoreChanged = { totalScore ->
+            updateScoreText(binding.bubbleView.getScore(), totalScore)
         }
         
         binding.bubbleView.onGameOver = {
             runOnUiThread {
                 val score = binding.bubbleView.getScore()
-                finalScoreText.text = getString(R.string.final_score, score)
+                val total = binding.bubbleView.getTotalScore()
+                finalScoreText.text = getString(R.string.final_score, score, total)
                 binding.gameOverOverlay.visibility = View.VISIBLE
             }
         }
@@ -45,12 +52,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun updateScoreText(score: Int) {
-        scoreText.text = score.toString()
+    private fun updateScoreText(score: Int, totalScore: Int) {
+        scoreText.text = getString(R.string.score_display, score, totalScore)
     }
     
     override fun onResume() {
         super.onResume()
-        updateScoreText(binding.bubbleView.getScore())
+        updateScoreText(binding.bubbleView.getScore(), binding.bubbleView.getTotalScore())
     }
 }

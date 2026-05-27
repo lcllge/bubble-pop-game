@@ -2,14 +2,14 @@
 <resources>
     <string-array name="background_entries">
         <item>@string/background_default</item>
-        <item>@string/background_dark</item>
-        <item>@string/background_sunset</item>
-        <item>@string/background_ocean</item>
+        <item>@string/background_warm</item>
+        <item>@string/background_lavender</item>
+        <item>@string/background_sage</item>
     </string-array>
     <string-array name="background_values">
         <item>default</item>
-        <item>dark</item>
-        <item>sunset</item>
-        <item>ocean</item>
+        <item>warm</item>
+        <item>lavender</item>
+        <item>sage</item>
     </string-array>
 </resources>

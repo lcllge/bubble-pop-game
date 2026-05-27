@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RadialGradient
 import android.graphics.Shader
+import android.graphics.LinearGradient
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -35,6 +36,7 @@ class BubbleView @JvmOverloads constructor(
     private val highlightPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val baroquePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     
     private val settingsManager: SettingsManager
         get() = (context.applicationContext as com.bubblepop.game.BubblePopApplication).settingsManager
@@ -55,12 +57,19 @@ class BubbleView @JvmOverloads constructor(
     private var screenWidth = 0
     private var screenHeight = 0
     private var score = 0
+    private var totalScore = 0 // 累计分数
     private var isGameOver = false
     private var isPaused = false
     private var lastSpawnTime = 0L
     
+    // Press interaction state
+    private var pressedBubble: Bubble? = null
+    private var isPressing = false
+    private var pressProgress = 0f
+    private var pressGlowAlpha = 0f
+    
     // Effects state
-    private var celebrationMode = 0 // 0=none, 1=firework(100), 2=golden(500), 3=ultimate(1000)
+    private var celebrationMode = 0
     private var celebrationProgress = 0f
     private var celebrationAnimator: ValueAnimator? = null
     private val particles = mutableListOf<Particle>()
@@ -68,26 +77,49 @@ class BubbleView @JvmOverloads constructor(
     private var edgeGlowAlpha = 0f
     private var edgeGlowDirection = 1f
     
+    // Baroque decorative elements
+    private val baroqueOrnaments = mutableListOf<BaroqueOrnament>()
+    
     // Callbacks
     var onScoreChanged: ((Int) -> Unit)? = null
+    var onTotalScoreChanged: ((Int) -> Unit)? = null
     var onGameOver: (() -> Unit)? = null
     var onCelebration: ((Int) -> Unit)? = null
     
     companion object {
         private const val MAX_BUBBLES = 30
         private const val MIN_BUBBLES = 8
-        private const val GROWTH_RATE = 0.15f // pixels per frame
-        private const val GLOW_THRESHOLD = 0.33f // 1/3 screen width
+        private const val GROWTH_RATE = 0.15f
+        private const val GLOW_THRESHOLD = 0.33f
     }
     
     init {
         highlightPaint.style = Paint.Style.FILL
         glowPaint.style = Paint.Style.FILL
         particlePaint.style = Paint.Style.FILL
+        baroquePaint.style = Paint.Style.STROKE
+        baroquePaint.strokeWidth = 2f
+        baroquePaint.color = Color.argb(60, 218, 165, 32)
+        
+        // Initialize baroque ornaments
+        initBaroqueOrnaments()
     }
     
     private val glowThreshold: Float
         get() = screenWidth * GLOW_THRESHOLD
+    
+    private fun initBaroqueOrnaments() {
+        // Pre-generate some ornamental positions
+        repeat(12) {
+            baroqueOrnaments.add(BaroqueOrnament(
+                x = Random.nextFloat(),
+                y = Random.nextFloat(),
+                size = Random.nextFloat() * 20f + 10f,
+                rotation = Random.nextFloat() * 360f,
+                alpha = Random.nextFloat() * 0.3f + 0.1f
+            ))
+        }
+    }
     
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
@@ -107,6 +139,9 @@ class BubbleView @JvmOverloads constructor(
         // Draw background
         drawBackground(canvas)
         
+        // Draw baroque decorations
+        drawBaroqueDecorations(canvas)
+        
         // Draw edge glow
         drawEdgeGlow(canvas)
         
@@ -114,14 +149,27 @@ class BubbleView @JvmOverloads constructor(
             // Update and draw bubbles
             bubbles.removeAll { it.isPopped && it.popProgress >= 1f }
             
+            val shouldPauseGrowth = isPressing && pressedBubble != null
+            
             for (bubble in bubbles) {
                 if (bubble.isPopped) {
                     bubble.popProgress += 0.04f
                     drawPoppingBubble(canvas, bubble)
+                } else if (bubble == pressedBubble && isPressing) {
+                    // Draw pressed bubble with special effect
+                    drawPressedBubble(canvas, bubble)
                 } else {
-                    updateBubble(bubble)
+                    if (!shouldPauseGrowth) {
+                        updateBubble(bubble)
+                    }
                     drawBubble(canvas, bubble)
                 }
+            }
+            
+            // Update press animation
+            if (isPressing && pressedBubble != null) {
+                pressProgress = min(1f, pressProgress + 0.03f)
+                pressGlowAlpha = sin(pressProgress * PI / 2f).toFloat()
             }
             
             // Spawn new bubbles
@@ -149,12 +197,97 @@ class BubbleView @JvmOverloads constructor(
     
     private fun drawBackground(canvas: Canvas) {
         val bg = when (settingsManager.background) {
-            "dark" -> Color.parseColor("#0D0D0D")
-            "sunset" -> Color.parseColor("#2D1B36")
-            "ocean" -> Color.parseColor("#0C2340")
-            else -> Color.parseColor("#1A1A2E")
+            "warm" -> Color.parseColor("#F5E6D3")
+            "lavender" -> Color.parseColor("#E8D5E0")
+            "sage" -> Color.parseColor("#D5E0D5")
+            else -> Color.parseColor("#F0E4D7")
         }
         canvas.drawColor(bg)
+    }
+    
+    private fun drawBaroqueDecorations(canvas: Canvas) {
+        // Draw ornate border
+        val borderWidth = 8f
+        val goldColor = Color.argb(80, 218, 165, 32)
+        
+        paint.color = goldColor
+        paint.strokeWidth = borderWidth
+        paint.style = Paint.Style.STROKE
+        
+        // Outer border
+        canvas.drawRect(
+            borderWidth / 2, borderWidth / 2,
+            screenWidth - borderWidth / 2, screenHeight - borderWidth / 2,
+            paint
+        )
+        
+        // Inner border
+        paint.strokeWidth = 2f
+        paint.alpha = 50
+        canvas.drawRect(
+            borderWidth + 4, borderWidth + 4,
+            screenWidth - borderWidth - 4, screenHeight - borderWidth - 4,
+            paint
+        )
+        
+        // Corner ornaments
+        drawCornerOrnament(canvas, borderWidth + 10, borderWidth + 10, 1f, 1f)
+        drawCornerOrnament(canvas, screenWidth - borderWidth - 10, borderWidth + 10, -1f, 1f)
+        drawCornerOrnament(canvas, borderWidth + 10, screenHeight - borderWidth - 10, 1f, -1f)
+        drawCornerOrnament(canvas, screenWidth - borderWidth - 10, screenHeight - borderWidth - 10, -1f, -1f)
+        
+        // Scattered decorative swirls
+        for (ornament in baroqueOrnaments) {
+            val ox = ornament.x * screenWidth
+            val oy = ornament.y * screenHeight
+            drawSmallSwirl(canvas, ox, oy, ornament.size, ornament.rotation, ornament.alpha)
+        }
+        
+        paint.style = Paint.Style.FILL
+        paint.alpha = 255
+    }
+    
+    private fun drawCornerOrnament(canvas: Canvas, x: Float, y: Float, scaleX: Float, scaleY: Float) {
+        paint.color = Color.argb(100, 218, 165, 32)
+        paint.strokeWidth = 2f
+        paint.style = Paint.Style.STROKE
+        
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.scale(scaleX, scaleY)
+        
+        // Curved flourish
+        val path = android.graphics.Path()
+        path.moveTo(0f, 0f)
+        path.cubicTo(15f, 0f, 30f, 10f, 30f, 25f)
+        path.cubicTo(30f, 40f, 15f, 45f, 0f, 45f)
+        canvas.drawPath(path, paint)
+        
+        // Small circle
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(30f, 25f, 3f, paint)
+        canvas.drawCircle(0f, 45f, 3f, paint)
+        
+        canvas.restore()
+        paint.style = Paint.Style.FILL
+    }
+    
+    private fun drawSmallSwirl(canvas: Canvas, x: Float, y: Float, size: Float, rotation: Float, alpha: Float) {
+        paint.color = Color.argb((alpha * 60).toInt(), 184, 134, 11)
+        paint.strokeWidth = 1f
+        paint.style = Paint.Style.STROKE
+        
+        canvas.save()
+        canvas.translate(x, y)
+        canvas.rotate(rotation)
+        
+        val path = android.graphics.Path()
+        path.moveTo(0f, 0f)
+        path.cubicTo(size / 2, -size / 3, size, 0f, size / 2, size / 2)
+        canvas.drawPath(path, paint)
+        
+        canvas.restore()
+        paint.style = Paint.Style.FILL
     }
     
     private fun drawEdgeGlow(canvas: Canvas) {
@@ -163,39 +296,35 @@ class BubbleView @JvmOverloads constructor(
             if (edgeGlowAlpha >= 1f) edgeGlowDirection = -1f
             if (edgeGlowAlpha <= 0.3f) edgeGlowDirection = 1f
             
-            val glowColor = Color.argb((edgeGlowAlpha * 80).toInt(), 255, 200, 100)
-            val gradientSize = 60f
+            val glowColor = Color.argb((edgeGlowAlpha * 60).toInt(), 218, 165, 32)
+            val gradientSize = 50f
             
             // Top edge
-            val topGrad = RadialGradient(
-                screenWidth / 2f, 0f, gradientSize,
+            paint.shader = LinearGradient(
+                0f, 0f, 0f, gradientSize,
                 glowColor, Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
-            paint.shader = topGrad
             canvas.drawRect(0f, 0f, screenWidth.toFloat(), gradientSize, paint)
             
             // Bottom edge
-            val bottomGrad = RadialGradient(
-                screenWidth / 2f, screenHeight.toFloat(), gradientSize,
+            paint.shader = LinearGradient(
+                0f, screenHeight.toFloat(), 0f, screenHeight - gradientSize,
                 glowColor, Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
-            paint.shader = bottomGrad
             canvas.drawRect(0f, screenHeight - gradientSize, screenWidth.toFloat(), screenHeight.toFloat(), paint)
             
             // Left edge
-            val leftGrad = RadialGradient(
-                0f, screenHeight / 2f, gradientSize,
+            paint.shader = LinearGradient(
+                0f, 0f, gradientSize, 0f,
                 glowColor, Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
-            paint.shader = leftGrad
             canvas.drawRect(0f, 0f, gradientSize, screenHeight.toFloat(), paint)
             
             // Right edge
-            val rightGrad = RadialGradient(
-                screenWidth.toFloat(), screenHeight / 2f, gradientSize,
+            paint.shader = LinearGradient(
+                screenWidth.toFloat(), 0f, screenWidth - gradientSize, 0f,
                 glowColor, Color.TRANSPARENT, Shader.TileMode.CLAMP
             )
-            paint.shader = rightGrad
             canvas.drawRect(screenWidth - gradientSize, 0f, screenWidth.toFloat(), screenHeight.toFloat(), paint)
             
             paint.shader = null
@@ -205,18 +334,14 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun updateBubble(bubble: Bubble) {
-        // Grow bubble
         bubble.radius += GROWTH_RATE
         
-        // Wobble effect
         bubble.wobblePhase += bubble.wobbleSpeed
         val wobbleOffset = sin(bubble.wobblePhase * PI / 180f).toFloat() * bubble.wobbleAmplitude
         
-        // Move bubble
         bubble.x += bubble.velocityX + wobbleOffset * 0.2f
         bubble.y += bubble.velocityY
         
-        // Bounce off edges (keep bubble fully on screen)
         if (bubble.x - bubble.radius < 0) {
             bubble.x = bubble.radius
             bubble.velocityX = kotlin.math.abs(bubble.velocityX)
@@ -234,10 +359,7 @@ class BubbleView @JvmOverloads constructor(
             bubble.velocityY = -kotlin.math.abs(bubble.velocityY)
         }
         
-        // Slight gravity
         bubble.velocityY += 0.01f
-        
-        // Glow phase for breathing effect
         bubble.glowPhase += 2f
     }
     
@@ -245,10 +367,9 @@ class BubbleView @JvmOverloads constructor(
         val isGlowing = bubble.radius >= glowThreshold
         
         if (isGlowing) {
-            // Breathing glow
             val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
             val glowRadius = bubble.radius * (1.3f + breathe * 0.3f)
-            val glowAlpha = (80 + breathe * 60).toInt()
+            val glowAlpha = (60 + breathe * 40).toInt()
             
             val glowGradient = RadialGradient(
                 bubble.x, bubble.y, glowRadius,
@@ -262,7 +383,6 @@ class BubbleView @JvmOverloads constructor(
             glowPaint.shader = null
         }
         
-        // Main bubble gradient
         val gradient = RadialGradient(
             bubble.x - bubble.radius * 0.3f,
             bubble.y - bubble.radius * 0.3f,
@@ -272,13 +392,12 @@ class BubbleView @JvmOverloads constructor(
             Shader.TileMode.CLAMP
         )
         paint.shader = gradient
-        paint.alpha = (bubble.alpha * 220).toInt()
+        paint.alpha = (bubble.alpha * 200).toInt()
         
         canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
         
-        // Highlight
         highlightPaint.color = Color.WHITE
-        highlightPaint.alpha = if (isGlowing) 90 else 60
+        highlightPaint.alpha = if (isGlowing) 80 else 50
         canvas.drawCircle(
             bubble.x - bubble.radius * 0.25f,
             bubble.y - bubble.radius * 0.25f,
@@ -286,36 +405,84 @@ class BubbleView @JvmOverloads constructor(
             highlightPaint
         )
         
-        // Extra glow ring for big bubbles
         if (isGlowing) {
             val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
             paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 3f + breathe * 3f
-            paint.alpha = (100 + breathe * 80).toInt()
+            paint.strokeWidth = 2f + breathe * 2f
+            paint.alpha = (80 + breathe * 60).toInt()
             paint.color = lightenColor(bubble.color, 100)
-            canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 5f, paint)
+            canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 4f, paint)
             paint.style = Paint.Style.FILL
             paint.shader = null
         }
     }
     
+    private fun drawPressedBubble(canvas: Canvas, bubble: Bubble) {
+        // Bubble color glow at edges
+        val breathe = (sin(System.currentTimeMillis() / 200.0).toFloat() + 1f) / 2f
+        val glowRadius = bubble.radius * (1.5f + breathe * 0.4f)
+        val glowAlpha = (100 + breathe * 80).toInt()
+        
+        val glowGradient = RadialGradient(
+            bubble.x, bubble.y, glowRadius,
+            bubble.color,
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+        glowPaint.shader = glowGradient
+        glowPaint.alpha = glowAlpha
+        canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
+        glowPaint.shader = null
+        
+        // Pulsing ring
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 4f
+        paint.alpha = (150 + breathe * 80).toInt()
+        paint.color = bubble.color
+        canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 8f + breathe * 5f, paint)
+        
+        // Inner glow
+        val innerGrad = RadialGradient(
+            bubble.x, bubble.y, bubble.radius,
+            lightenColor(bubble.color, 80),
+            bubble.color,
+            Shader.TileMode.CLAMP
+        )
+        paint.shader = innerGrad
+        paint.alpha = 220
+        paint.style = Paint.Style.FILL
+        canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
+        paint.shader = null
+        
+        // Highlight
+        highlightPaint.color = Color.WHITE
+        highlightPaint.alpha = 100
+        canvas.drawCircle(
+            bubble.x - bubble.radius * 0.2f,
+            bubble.y - bubble.radius * 0.2f,
+            bubble.radius * 0.25f,
+            highlightPaint
+        )
+        
+        paint.style = Paint.Style.FILL
+    }
+    
     private fun drawPoppingBubble(canvas: Canvas, bubble: Bubble) {
         val progress = bubble.popProgress
-        val expandedRadius = bubble.radius * (1 + progress * 1.2f)
-        val alpha = (220 * (1 - progress)).toInt()
+        val expandedRadius = bubble.radius * (1 + progress * 1.5f)
+        val alpha = (200 * (1 - progress)).toInt()
         
         paint.color = bubble.color
         paint.alpha = alpha
         canvas.drawCircle(bubble.x, bubble.y, expandedRadius, paint)
         
-        // Draw pop particles
-        val particleCount = if (bubble.radius >= glowThreshold) 12 else 6
+        val particleCount = if (bubble.radius >= glowThreshold) 16 else 8
         for (i in 0 until particleCount) {
-            val angle = i * (360f / particleCount) + progress * 120f
+            val angle = i * (360f / particleCount) + progress * 180f
             val rad = angle * PI / 180f
-            val px = bubble.x + cos(rad).toFloat() * expandedRadius * 1.3f
-            val py = bubble.y + sin(rad).toFloat() * expandedRadius * 1.3f
-            val particleSize = bubble.radius * 0.12f * (1 - progress)
+            val px = bubble.x + cos(rad).toFloat() * expandedRadius * 1.4f
+            val py = bubble.y + sin(rad).toFloat() * expandedRadius * 1.4f
+            val particleSize = bubble.radius * 0.15f * (1 - progress)
             
             paint.alpha = alpha
             canvas.drawCircle(px, py, particleSize, paint)
@@ -335,7 +502,21 @@ class BubbleView @JvmOverloads constructor(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 if (!isGameOver && !isPaused) {
-                    handleTouch(event.getX(event.actionIndex), event.getY(event.actionIndex))
+                    handleTouchDown(event.getX(event.actionIndex), event.getY(event.actionIndex))
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                if (isPressing && pressedBubble != null) {
+                    handleTouchUp()
+                }
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (isPressing && pressedBubble != null) {
+                    isPressing = false
+                    pressedBubble = null
+                    pressProgress = 0f
                 }
                 return true
             }
@@ -343,7 +524,7 @@ class BubbleView @JvmOverloads constructor(
         return super.onTouchEvent(event)
     }
     
-    private fun handleTouch(x: Float, y: Float) {
+    private fun handleTouchDown(x: Float, y: Float) {
         var closestBubble: Bubble? = null
         var closestDist = Float.MAX_VALUE
         
@@ -358,7 +539,28 @@ class BubbleView @JvmOverloads constructor(
             }
         }
         
-        closestBubble?.let { popBubble(it) }
+        if (closestBubble != null) {
+            pressedBubble = closestBubble
+            isPressing = true
+            pressProgress = 0f
+            pressGlowAlpha = 0f
+            
+            // Light vibration feedback on press
+            if (settingsManager.vibrationEnabled) {
+                vibrate(15)
+            }
+        }
+    }
+    
+    private fun handleTouchUp() {
+        val bubble = pressedBubble
+        if (bubble != null && !bubble.isPopped) {
+            popBubble(bubble)
+        }
+        isPressing = false
+        pressedBubble = null
+        pressProgress = 0f
+        pressGlowAlpha = 0f
     }
     
     private fun popBubble(bubble: Bubble) {
@@ -368,23 +570,20 @@ class BubbleView @JvmOverloads constructor(
         val isBig = bubble.radius >= glowThreshold
         val scorePoints = calculateScore(bubble)
         score += scorePoints
+        totalScore += scorePoints
         onScoreChanged?.invoke(score)
+        onTotalScoreChanged?.invoke(totalScore)
         
-        // Sound
         if (settingsManager.soundEnabled) {
             soundManager.playPop(isBig)
         }
         
-        // Vibrate - stronger for bigger bubbles
         if (settingsManager.vibrationEnabled) {
             val duration = if (isBig) 80 else 30
             vibrate(duration)
         }
         
-        // Spawn particles
         spawnPopParticles(bubble)
-        
-        // Check milestones
         checkMilestones()
     }
     
@@ -432,7 +631,6 @@ class BubbleView @JvmOverloads constructor(
             start()
         }
         
-        // Sound effects
         if (settingsManager.soundEnabled) {
             soundManager.playFirework()
             if (celebrationMode >= 2) {
@@ -446,11 +644,9 @@ class BubbleView @JvmOverloads constructor(
         
         onCelebration?.invoke(celebrationMode)
         
-        // Resume after celebration
         postDelayed({
             isPaused = false
             if (celebrationMode >= 3) {
-                // Ultimate: keep celebration going
                 celebrationMode = 2
             }
         }, (celebrationAnimator?.duration ?: 2000) + 500)
@@ -477,7 +673,6 @@ class BubbleView @JvmOverloads constructor(
             ))
         }
         
-        // Golden rays for mode 2+
         if (celebrationMode >= 2) {
             repeat(2) {
                 goldenRays.add(GoldenRay(
@@ -513,7 +708,6 @@ class BubbleView @JvmOverloads constructor(
     private fun drawCelebration(canvas: Canvas) {
         if (celebrationMode == 0) return
         
-        // Golden overlay for mode 2+
         if (celebrationMode >= 2) {
             val breathe = (sin(celebrationProgress * PI * 4).toFloat() + 1f) / 2f
             val alpha = (30 + breathe * 40).toInt()
@@ -521,7 +715,6 @@ class BubbleView @JvmOverloads constructor(
             canvas.drawColor(paint.color)
         }
         
-        // Golden rays
         for (ray in goldenRays) {
             ray.alpha -= ray.decay
             if (ray.alpha > 0) {
@@ -539,7 +732,7 @@ class BubbleView @JvmOverloads constructor(
         for (p in particles) {
             p.x += p.vx
             p.y += p.vy
-            p.vy += 0.15f // gravity
+            p.vy += 0.15f
             p.life -= p.decay
             
             if (p.life > 0) {
@@ -577,6 +770,9 @@ class BubbleView @JvmOverloads constructor(
         celebrationMode = 0
         celebrationProgress = 0f
         edgeGlowAlpha = 0f
+        isPressing = false
+        pressedBubble = null
+        pressProgress = 0f
         onScoreChanged?.invoke(0)
         
         repeat(MIN_BUBBLES) {
@@ -585,6 +781,7 @@ class BubbleView @JvmOverloads constructor(
     }
     
     fun getScore(): Int = score
+    fun getTotalScore(): Int = totalScore
     
     data class Particle(
         var x: Float,
@@ -604,5 +801,13 @@ class BubbleView @JvmOverloads constructor(
         var length: Float,
         var alpha: Float,
         var decay: Float
+    )
+    
+    data class BaroqueOrnament(
+        var x: Float,
+        var y: Float,
+        var size: Float,
+        var rotation: Float,
+        var alpha: Float
     )
 }

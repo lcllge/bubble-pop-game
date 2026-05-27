@@ -8,23 +8,25 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Bubble colors -->
-    <color name="bubble_red">#FF6B6B</color>
-    <color name="bubble_orange">#FFA500</color>
-    <color name="bubble_yellow">#FFD93D</color>
-    <color name="bubble_green">#6BCB77</color>
-    <color name="bubble_blue">#4D96FF</color>
-    <color name="bubble_purple">#9B59B6</color>
-    <color name="bubble_pink">#FF69B4</color>
-    <color name="bubble_cyan">#00BCD4</color>
+    <!-- Bubble colors - softer pastel tones -->
+    <color name="bubble_red">#FFB3A7</color>
+    <color name="bubble_orange">#FFD4A5</color>
+    <color name="bubble_yellow">#FFF3C4</color>
+    <color name="bubble_green">#B8E6B8</color>
+    <color name="bubble_blue">#A5C8E6</color>
+    <color name="bubble_purple">#D4A5E6</color>
+    <color name="bubble_pink">#FFB3D9</color>
+    <color name="bubble_cyan">#A5E6E6</color>
     
-    <!-- Background colors -->
-    <color name="bg_default">#1A1A2E</color>
-    <color name="bg_dark">#0D0D0D</color>
-    <color name="bg_sunset">#2D1B36</color>
-    <color name="bg_ocean">#0C2340</color>
+    <!-- Background colors - warm and gentle -->
+    <color name="bg_default">#F0E4D7</color>
+    <color name="bg_warm">#F5E6D3</color>
+    <color name="bg_lavender">#E8D5E0</color>
+    <color name="bg_sage">#D5E0D5</color>
     
-    <!-- UI colors -->
-    <color name="settings_bg">#16213E</color>
-    <color name="settings_text">#E8E8E8</color>
+    <!-- UI colors - baroque gold theme -->
+    <color name="settings_bg">#F5E6D3</color>
+    <color name="settings_text">#5C4033</color>
+    <color name="gold_accent">#DAA520</color>
+    <color name="gold_dark">#B8860B</color>
 </resources>

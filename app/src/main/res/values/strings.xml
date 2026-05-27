@@ -9,14 +9,14 @@
     <string name="vibration_desc">捏破泡泡时震动反馈</string>
     <string name="background">背景</string>
     <string name="background_desc">选择游戏背景</string>
-    <string name="background_default">默认</string>
-    <string name="background_dark">深色</string>
-    <string name="background_sunset">日落</string>
-    <string name="background_ocean">海洋</string>
-    <string name="pop_count">已捏破: %1$d</string>
+    <string name="background_default">奶油色</string>
+    <string name="background_warm">暖杏色</string>
+    <string name="background_lavender">淡紫罗兰</string>
+    <string name="background_sage">鼠尾草绿</string>
+    <string name="score_display">本轮: %1$d | 累计: %2$d</string>
     <string name="score_label">得分</string>
     <string name="game_over">游戏结束</string>
-    <string name="final_score">最终得分: %1$d</string>
+    <string name="final_score">本轮: %1$d | 累计: %2$d</string>
     <string name="restart">重新开始</string>
     <string name="back">返回</string>
 </resources>
