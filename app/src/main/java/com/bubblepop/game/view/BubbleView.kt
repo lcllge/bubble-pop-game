@@ -9,6 +9,8 @@ import android.graphics.Path
 import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.LinearGradient
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -22,6 +24,7 @@ import com.bubblepop.game.model.Bubble
 import com.bubblepop.game.model.BubbleShape
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -40,6 +43,9 @@ class BubbleView @JvmOverloads constructor(
     private val particlePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val baroquePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val bubblePath = Path()
+    private val clearPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+    }
     
     private val settingsManager: SettingsManager
         get() = (context.applicationContext as com.bubblepop.game.BubblePopApplication).settingsManager
@@ -71,7 +77,6 @@ class BubbleView @JvmOverloads constructor(
     private var pressedBubble: Bubble? = null
     private var isPressing = false
     private var pressProgress = 0f
-    private var pressGlowAlpha = 0f
     
     // Effects state
     private var celebrationMode = 0
@@ -79,6 +84,7 @@ class BubbleView @JvmOverloads constructor(
     private var celebrationAnimator: ValueAnimator? = null
     private val particles = mutableListOf<Particle>()
     private val goldenRays = mutableListOf<GoldenRay>()
+    private val shockwaves = mutableListOf<Shockwave>()
     private var edgeGlowAlpha = 0f
     private var edgeGlowDirection = 1f
     
@@ -179,7 +185,7 @@ class BubbleView @JvmOverloads constructor(
             
             for (bubble in bubbles) {
                 if (bubble.isPopped) {
-                    bubble.popProgress += 0.04f
+                    bubble.popProgress += 0.03f
                     drawPoppingBubble(canvas, bubble)
                 } else if (bubble == pressedBubble && isPressing) {
                     drawPressedBubble(canvas, bubble)
@@ -192,8 +198,7 @@ class BubbleView @JvmOverloads constructor(
             }
             
             if (isPressing && pressedBubble != null) {
-                pressProgress = min(1f, pressProgress + 0.03f)
-                pressGlowAlpha = sin(pressProgress * PI / 2f).toFloat()
+                pressProgress = min(1f, pressProgress + 0.025f)
             }
             
             handleBubbleCollisions()
@@ -213,16 +218,17 @@ class BubbleView @JvmOverloads constructor(
         
         drawCelebration(canvas)
         drawParticles(canvas)
+        drawShockwaves(canvas)
         
         invalidate()
     }
     
     private fun drawBackground(canvas: Canvas) {
         val bg = when (settingsManager.background) {
-            "warm" -> Color.parseColor("#F5E6D3")
-            "lavender" -> Color.parseColor("#E8D5E0")
-            "sage" -> Color.parseColor("#D5E0D5")
-            else -> Color.parseColor("#F0E4D7")
+            "warm" -> Color.parseColor("#FDF6EC")
+            "lavender" -> Color.parseColor("#F5EEF8")
+            "sage" -> Color.parseColor("#EEF5EE")
+            else -> Color.parseColor("#FDF8F0")
         }
         canvas.drawColor(bg)
     }
@@ -453,6 +459,7 @@ class BubbleView @JvmOverloads constructor(
         }
         
         bubble.glowPhase += 2f
+        bubble.baroqueRotation += 0.3f
     }
     
     private fun handleBubbleCollisions() {
@@ -493,9 +500,11 @@ class BubbleView @JvmOverloads constructor(
         }
     }
     
+    // ====== 绘制小球（含巴洛克内部装饰） ======
     private fun drawBubble(canvas: Canvas, bubble: Bubble) {
         val isGlowing = bubble.radius >= maxRadius * 0.8f
         
+        // 发光效果
         if (isGlowing) {
             val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
             val glowRadius = bubble.radius * (1.3f + breathe * 0.3f)
@@ -508,33 +517,140 @@ class BubbleView @JvmOverloads constructor(
             glowPaint.shader = null
         }
         
+        // 主体渐变 - 逼真球体感
         val gradient = RadialGradient(
             bubble.x - bubble.radius * 0.3f, bubble.y - bubble.radius * 0.3f,
-            bubble.radius, lightenColor(bubble.color, 60), bubble.color, Shader.TileMode.CLAMP
+            bubble.radius * 1.1f,
+            lightenColor(bubble.color, 80),
+            bubble.color,
+            Shader.TileMode.CLAMP
         )
         paint.shader = gradient
-        paint.alpha = (bubble.alpha * 200).toInt()
+        paint.alpha = (bubble.alpha * 220).toInt()
         
         when (bubble.shape) {
             BubbleShape.CIRCLE -> canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
             BubbleShape.ELLIPSE -> drawEllipse(canvas, bubble)
-            BubbleShape.IRREGULAR -> drawIrregularBubble(canvas, bubble)
         }
         
-        highlightPaint.color = Color.WHITE
-        highlightPaint.alpha = if (isGlowing) 80 else 50
-        canvas.drawCircle(bubble.x - bubble.radius * 0.25f, bubble.y - bubble.radius * 0.25f, bubble.radius * 0.3f, highlightPaint)
+        // 巴洛克内部装饰
+        drawBaroqueOnBubble(canvas, bubble)
         
+        // 高光 - 逼真感
+        highlightPaint.color = Color.WHITE
+        highlightPaint.alpha = if (isGlowing) 100 else 70
+        canvas.drawOval(
+            bubble.x - bubble.radius * 0.35f,
+            bubble.y - bubble.radius * 0.4f,
+            bubble.x - bubble.radius * 0.05f,
+            bubble.y - bubble.radius * 0.1f,
+            highlightPaint
+        )
+        
+        // 底部反光
+        highlightPaint.alpha = 30
+        canvas.drawOval(
+            bubble.x - bubble.radius * 0.2f,
+            bubble.y + bubble.radius * 0.15f,
+            bubble.x + bubble.radius * 0.2f,
+            bubble.y + bubble.radius * 0.35f,
+            highlightPaint
+        )
+        
+        // 发光边框
         if (isGlowing) {
             val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
             paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 2f + breathe * 2f
-            paint.alpha = (80 + breathe * 60).toInt()
-            paint.color = lightenColor(bubble.color, 100)
-            canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 4f, paint)
-            paint.style = Paint.Style.FILL
+            paint.strokeWidth = 2.5f + breathe * 2f
+            paint.alpha = (100 + breathe * 60).toInt()
+            paint.color = Color.WHITE
             paint.shader = null
+            canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 3f, paint)
+            paint.style = Paint.Style.FILL
         }
+        
+        paint.shader = null
+    }
+    
+    // 巴洛克装饰画在小球内部
+    private fun drawBaroqueOnBubble(canvas: Canvas, bubble: Bubble) {
+        val r = bubble.radius
+        if (r < 25f) return // 太小的球不画装饰
+        
+        canvas.save()
+        canvas.translate(bubble.x, bubble.y)
+        canvas.rotate(bubble.baroqueRotation)
+        
+        val alpha = min(120, (r / maxRadius * 120).toInt())
+        baroquePaint.color = Color.argb(alpha, 255, 255, 255)
+        baroquePaint.strokeWidth = max(1f, r * 0.04f)
+        baroquePaint.style = Paint.Style.STROKE
+        
+        when (bubble.baroquePattern) {
+            0 -> {
+                // 鸢尾花纹
+                val path = Path()
+                path.moveTo(0f, -r * 0.5f)
+                path.cubicTo(r * 0.2f, -r * 0.2f, r * 0.3f, 0f, 0f, r * 0.2f)
+                path.cubicTo(-r * 0.3f, 0f, -r * 0.2f, -r * 0.2f, 0f, -r * 0.5f)
+                canvas.drawPath(path, baroquePaint)
+                
+                path.reset()
+                path.moveTo(-r * 0.35f, 0f)
+                path.cubicTo(-r * 0.15f, -r * 0.1f, 0f, -r * 0.05f, 0f, r * 0.15f)
+                canvas.drawPath(path, baroquePaint)
+                
+                path.reset()
+                path.moveTo(r * 0.35f, 0f)
+                path.cubicTo(r * 0.15f, -r * 0.1f, 0f, -r * 0.05f, 0f, r * 0.15f)
+                canvas.drawPath(path, baroquePaint)
+            }
+            1 -> {
+                // 漩涡纹
+                val path = Path()
+                path.moveTo(0f, 0f)
+                for (i in 1..36) {
+                    val angle = i * 10f * PI / 180f
+                    val dist = i * r * 0.012f
+                    path.lineTo(cos(angle).toFloat() * dist, sin(angle).toFloat() * dist)
+                }
+                canvas.drawPath(path, baroquePaint)
+            }
+            2 -> {
+                // 皇冠纹
+                val path = Path()
+                val pts = 5
+                for (i in 0 until pts * 2) {
+                    val angle = (i * 360f / (pts * 2) - 90f) * PI / 180f
+                    val dist = if (i % 2 == 0) r * 0.45f else r * 0.25f
+                    val px = cos(angle).toFloat() * dist
+                    val py = sin(angle).toFloat() * dist
+                    if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                }
+                path.close()
+                canvas.drawPath(path, baroquePaint)
+            }
+            3 -> {
+                // 藤蔓纹
+                val path = Path()
+                path.moveTo(-r * 0.4f, r * 0.3f)
+                path.cubicTo(-r * 0.2f, -r * 0.3f, r * 0.2f, -r * 0.3f, r * 0.4f, r * 0.3f)
+                canvas.drawPath(path, baroquePaint)
+                
+                path.reset()
+                path.moveTo(-r * 0.3f, 0f)
+                path.cubicTo(-r * 0.1f, r * 0.2f, r * 0.1f, r * 0.2f, r * 0.3f, 0f)
+                canvas.drawPath(path, baroquePaint)
+                
+                baroquePaint.style = Paint.Style.FILL
+                canvas.drawCircle(0f, -r * 0.15f, r * 0.04f, baroquePaint)
+                canvas.drawCircle(-r * 0.25f, r * 0.15f, r * 0.03f, baroquePaint)
+                canvas.drawCircle(r * 0.25f, r * 0.15f, r * 0.03f, baroquePaint)
+            }
+        }
+        
+        canvas.restore()
+        baroquePaint.style = Paint.Style.STROKE
     }
     
     private fun drawEllipse(canvas: Canvas, bubble: Bubble) {
@@ -546,93 +662,160 @@ class BubbleView @JvmOverloads constructor(
         canvas.restore()
     }
     
-    private fun drawIrregularBubble(canvas: Canvas, bubble: Bubble) {
-        bubblePath.reset()
-        val points = bubble.irregularPoints
-        val numPoints = points.size
-        if (numPoints == 0) {
-            canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
-            return
-        }
-        
-        for (i in 0 until numPoints) {
-            val angle = i * (360f / numPoints)
-            val rad = angle * PI / 180f
-            val r = bubble.radius * points[i]
-            val px = bubble.x + cos(rad).toFloat() * r
-            val py = bubble.y + sin(rad).toFloat() * r
-            
-            if (i == 0) bubblePath.moveTo(px, py)
-            else {
-                val prevAngle = (i - 1) * (360f / numPoints)
-                val prevRad = prevAngle * PI / 180f
-                val prevR = bubble.radius * points[i - 1]
-                val cpx = bubble.x + cos((prevAngle + angle) / 2 * PI / 180f).toFloat() * (prevR + r) / 2f * 1.1f
-                val cpy = bubble.y + sin((prevAngle + angle) / 2 * PI / 180f).toFloat() * (prevR + r) / 2f * 1.1f
-                bubblePath.quadTo(cpx, cpy, px, py)
-            }
-        }
-        bubblePath.close()
-        canvas.drawPath(bubblePath, paint)
-    }
-    
+    // ====== 炫酷按压效果 ======
     private fun drawPressedBubble(canvas: Canvas, bubble: Bubble) {
-        val breathe = (sin(System.currentTimeMillis() / 200.0).toFloat() + 1f) / 2f
-        val glowRadius = bubble.radius * (1.5f + breathe * 0.4f)
-        val glowAlpha = (100 + breathe * 80).toInt()
+        val breathe = (sin(System.currentTimeMillis() / 150.0).toFloat() + 1f) / 2f
+        val p = pressProgress
         
-        val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, bubble.color, Color.TRANSPARENT, Shader.TileMode.CLAMP)
+        // 多层光环
+        for (i in 3 downTo 0) {
+            val ringRadius = bubble.radius * (1.3f + i * 0.25f + breathe * 0.15f)
+            val ringAlpha = ((1f - i * 0.2f) * (80 + breathe * 60) * p).toInt()
+            val ringColor = lightenColor(bubble.color, 40 + i * 20)
+            
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 3f - i * 0.5f
+            paint.alpha = ringAlpha
+            paint.color = ringColor
+            paint.shader = null
+            canvas.drawCircle(bubble.x, bubble.y, ringRadius, paint)
+        }
+        
+        // 旋转光晕
+        val glowRadius = bubble.radius * (1.8f + breathe * 0.5f)
+        val glowGradient = RadialGradient(
+            bubble.x, bubble.y, glowRadius,
+            lightenColor(bubble.color, 100),
+            bubble.color,
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
         glowPaint.shader = glowGradient
-        glowPaint.alpha = glowAlpha
+        glowPaint.alpha = (120 + breathe * 80).toInt()
         canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
         glowPaint.shader = null
         
+        // 脉冲波纹
+        val pulsePhase = (System.currentTimeMillis() % 800) / 800f
+        val pulseRadius = bubble.radius * (1f + pulsePhase * 1.2f)
+        val pulseAlpha = ((1f - pulsePhase) * 100).toInt()
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 4f
-        paint.alpha = (150 + breathe * 80).toInt()
-        paint.color = bubble.color
-        canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 8f + breathe * 5f, paint)
+        paint.strokeWidth = 2f
+        paint.alpha = pulseAlpha
+        paint.color = Color.WHITE
+        canvas.drawCircle(bubble.x, bubble.y, pulseRadius, paint)
         
-        val innerGrad = RadialGradient(bubble.x, bubble.y, bubble.radius, lightenColor(bubble.color, 80), bubble.color, Shader.TileMode.CLAMP)
+        // 球体本身 - 压缩变形
+        val compressScale = 1f - p * 0.15f
+        canvas.save()
+        canvas.translate(bubble.x, bubble.y)
+        canvas.scale(1f / compressScale, compressScale)
+        
+        val innerGrad = RadialGradient(
+            0f, -bubble.radius * 0.3f, bubble.radius,
+            lightenColor(bubble.color, 100),
+            bubble.color,
+            Shader.TileMode.CLAMP
+        )
         paint.shader = innerGrad
-        paint.alpha = 220
+        paint.alpha = 240
         paint.style = Paint.Style.FILL
+        canvas.drawCircle(0f, 0f, bubble.radius, paint)
+        paint.shader = null
         
-        when (bubble.shape) {
-            BubbleShape.CIRCLE -> canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
-            BubbleShape.ELLIPSE -> drawEllipse(canvas, bubble)
-            BubbleShape.IRREGULAR -> drawIrregularBubble(canvas, bubble)
+        // 内部巴洛克装饰
+        canvas.restore()
+        drawBaroqueOnBubble(canvas, bubble)
+        
+        // 高光
+        highlightPaint.color = Color.WHITE
+        highlightPaint.alpha = 120
+        canvas.drawOval(
+            bubble.x - bubble.radius * 0.3f,
+            bubble.y - bubble.radius * 0.45f,
+            bubble.x,
+            bubble.y - bubble.radius * 0.15f,
+            highlightPaint
+        )
+        
+        // 分数提示
+        if (p > 0.3f) {
+            val scoreAlpha = ((p - 0.3f) / 0.7f * 200).toInt()
+            paint.style = Paint.Style.FILL
+            paint.alpha = scoreAlpha
+            paint.color = Color.WHITE
+            paint.textSize = bubble.radius * 0.5f
+            paint.textAlign = Paint.Align.CENTER
+            val scoreText = "+${calculateScore(bubble)}"
+            canvas.drawText(scoreText, bubble.x, bubble.y - bubble.radius * 1.5f - p * 20f, paint)
         }
         
-        paint.shader = null
-        highlightPaint.color = Color.WHITE
-        highlightPaint.alpha = 100
-        canvas.drawCircle(bubble.x - bubble.radius * 0.2f, bubble.y - bubble.radius * 0.2f, bubble.radius * 0.25f, highlightPaint)
         paint.style = Paint.Style.FILL
+        paint.alpha = 255
     }
     
+    // ====== 夸张爆炸效果 ======
     private fun drawPoppingBubble(canvas: Canvas, bubble: Bubble) {
         val progress = bubble.popProgress
-        val expandedRadius = bubble.radius * (1 + progress * 1.5f)
-        val alpha = (200 * (1 - progress)).toInt()
+        val expandedRadius = bubble.radius * (1 + progress * 2.5f)
+        val alpha = (220 * (1 - progress * progress)).toInt()
         
-        paint.color = bubble.color
+        // 冲击波
+        if (progress < 0.5f) {
+            val shockAlpha = ((1f - progress * 2) * 150).toInt()
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 4f * (1f - progress)
+            paint.alpha = shockAlpha
+            paint.color = Color.WHITE
+            canvas.drawCircle(bubble.x, bubble.y, expandedRadius * 1.5f, paint)
+        }
+        
+        // 主爆炸体
+        val gradient = RadialGradient(
+            bubble.x, bubble.y, expandedRadius,
+            lightenColor(bubble.color, 120),
+            bubble.color,
+            Color.TRANSPARENT,
+            Shader.TileMode.CLAMP
+        )
+        paint.shader = gradient
         paint.alpha = alpha
+        paint.style = Paint.Style.FILL
         canvas.drawCircle(bubble.x, bubble.y, expandedRadius, paint)
+        paint.shader = null
         
-        val particleCount = if (bubble.radius >= maxRadius * 0.8f) 16 else 8
+        // 多层碎片粒子
+        val particleCount = if (bubble.radius >= maxRadius * 0.8f) 24 else 16
         for (i in 0 until particleCount) {
-            val angle = i * (360f / particleCount) + progress * 180f
+            val angle = i * (360f / particleCount) + progress * 270f
             val rad = angle * PI / 180f
-            val px = bubble.x + cos(rad).toFloat() * expandedRadius * 1.4f
-            val py = bubble.y + sin(rad).toFloat() * expandedRadius * 1.4f
-            val particleSize = bubble.radius * 0.15f * (1 - progress)
+            val dist = expandedRadius * (1.2f + progress * 0.8f)
+            val px = bubble.x + cos(rad).toFloat() * dist
+            val py = bubble.y + sin(rad).toFloat() * dist
+            val particleSize = bubble.radius * 0.12f * (1 - progress * progress)
             
             paint.alpha = alpha
+            paint.style = Paint.Style.FILL
+            paint.color = if (i % 3 == 0) Color.WHITE else bubble.color
             canvas.drawCircle(px, py, particleSize, paint)
         }
         
-        paint.shader = null
+        // 金色闪光碎片
+        if (progress < 0.6f) {
+            for (i in 0 until 8) {
+                val angle = i * 45f + progress * 180f
+                val rad = angle * PI / 180f
+                val px = bubble.x + cos(rad).toFloat() * expandedRadius * 1.8f
+                val py = bubble.y + sin(rad).toFloat() * expandedRadius * 1.8f
+                val sparkleSize = bubble.radius * 0.08f * (1 - progress)
+                
+                paint.color = Color.argb(alpha, 255, 215, 0)
+                canvas.drawCircle(px, py, sparkleSize, paint)
+            }
+        }
+        
+        paint.style = Paint.Style.FILL
+        paint.alpha = 255
     }
     
     private fun lightenColor(color: Int, amount: Int): Int {
@@ -687,10 +870,19 @@ class BubbleView @JvmOverloads constructor(
             pressedBubble = closestBubble
             isPressing = true
             pressProgress = 0f
-            pressGlowAlpha = 0f
+            
+            // 点击即加分
+            val scorePoints = calculateScore(closestBubble)
+            if (scorePoints > 0) {
+                score += scorePoints
+                totalScore += scorePoints
+                settingsManager.totalScore = totalScore
+                onScoreChanged?.invoke(score)
+                onTotalScoreChanged?.invoke(totalScore)
+            }
             
             if (settingsManager.vibrationEnabled) {
-                vibrate(15)
+                vibrate(15L)
             }
         }
     }
@@ -703,7 +895,6 @@ class BubbleView @JvmOverloads constructor(
         isPressing = false
         pressedBubble = null
         pressProgress = 0f
-        pressGlowAlpha = 0f
     }
     
     private fun popBubble(bubble: Bubble) {
@@ -711,12 +902,6 @@ class BubbleView @JvmOverloads constructor(
         bubble.popProgress = 0f
         
         val isBig = bubble.radius >= maxRadius * 0.8f
-        val scorePoints = calculateScore(bubble)
-        score += scorePoints
-        totalScore += scorePoints
-        settingsManager.totalScore = totalScore
-        onScoreChanged?.invoke(score)
-        onTotalScoreChanged?.invoke(totalScore)
         
         if (settingsManager.soundEnabled) {
             soundManager.playPop(isBig)
@@ -728,14 +913,16 @@ class BubbleView @JvmOverloads constructor(
         }
         
         spawnPopParticles(bubble)
+        spawnShockwave(bubble)
         checkMilestones()
     }
     
     private fun calculateScore(bubble: Bubble): Int {
+        val ratio = bubble.radius / maxRadius
         return when {
-            bubble.radius >= maxRadius -> 3
-            bubble.radius >= maxRadius * 0.8f -> 1
-            else -> 0
+            ratio >= 1f -> 3
+            ratio >= 0.8f -> 1
+            else -> 1 // 点击就有分
         }
     }
     
@@ -784,14 +971,14 @@ class BubbleView @JvmOverloads constructor(
         celebrationAnimator = animator
         
         if (celebrationMode >= 2) {
-            repeat(12) {
+            repeat(24) {
                 goldenRays.add(GoldenRay(
                     x = screenWidth / 2f,
                     y = screenHeight / 2f,
-                    angle = it * 30f,
+                    angle = it * 15f,
                     length = 0f,
                     alpha = 1f,
-                    decay = 0.008f
+                    decay = 0.006f
                 ))
             }
         }
@@ -803,7 +990,7 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun spawnCelebrationParticles() {
-        if (Random.nextFloat() > 0.3f) return
+        if (Random.nextFloat() > 0.4f) return
         
         val colors = listOf(
             Color.parseColor("#FFD700"),
@@ -812,38 +999,71 @@ class BubbleView @JvmOverloads constructor(
             Color.parseColor("#FF6347"),
             Color.parseColor("#7FFF00"),
             Color.parseColor("#FF4500"),
-            Color.parseColor("#9370DB")
+            Color.parseColor("#9370DB"),
+            Color.parseColor("#FF1493"),
+            Color.parseColor("#00CED1")
         )
         
         particles.add(Particle(
             x = Random.nextFloat() * screenWidth,
             y = screenHeight + 10f,
-            vx = Random.nextFloat() * 6f - 3f,
-            vy = -(Random.nextFloat() * 12f + 8f),
+            vx = Random.nextFloat() * 8f - 4f,
+            vy = -(Random.nextFloat() * 15f + 10f),
             color = colors.random(),
-            size = Random.nextFloat() * 6f + 2f,
+            size = Random.nextFloat() * 8f + 3f,
             life = 1f,
-            decay = Random.nextFloat() * 0.015f + 0.008f
+            decay = Random.nextFloat() * 0.012f + 0.006f,
+            type = Random.nextInt(3)
         ))
     }
     
     private fun spawnPopParticles(bubble: Bubble) {
-        val count = if (bubble.radius >= maxRadius * 0.8f) 20 else 10
+        val count = if (bubble.radius >= maxRadius * 0.8f) 30 else 16
         repeat(count) {
             val angle = Random.nextFloat() * 360f
             val rad = angle * PI / 180f
-            val speed = Random.nextFloat() * 8f + 3f
+            val speed = Random.nextFloat() * 12f + 4f
             particles.add(Particle(
                 x = bubble.x,
                 y = bubble.y,
                 vx = cos(rad).toFloat() * speed,
                 vy = sin(rad).toFloat() * speed,
                 color = bubble.color,
-                size = Random.nextFloat() * 5f + 2f,
+                size = Random.nextFloat() * 7f + 2f,
                 life = 1f,
-                decay = Random.nextFloat() * 0.02f + 0.015f
+                decay = Random.nextFloat() * 0.018f + 0.01f,
+                type = Random.nextInt(3)
             ))
         }
+        
+        // 额外金色闪光
+        repeat(8) {
+            val angle = Random.nextFloat() * 360f
+            val rad = angle * PI / 180f
+            val speed = Random.nextFloat() * 6f + 2f
+            particles.add(Particle(
+                x = bubble.x,
+                y = bubble.y,
+                vx = cos(rad).toFloat() * speed,
+                vy = sin(rad).toFloat() * speed,
+                color = Color.parseColor("#FFD700"),
+                size = Random.nextFloat() * 4f + 1f,
+                life = 1f,
+                decay = Random.nextFloat() * 0.025f + 0.015f,
+                type = 2
+            ))
+        }
+    }
+    
+    private fun spawnShockwave(bubble: Bubble) {
+        shockwaves.add(Shockwave(
+            x = bubble.x,
+            y = bubble.y,
+            radius = bubble.radius,
+            maxRadius = bubble.radius * 4f,
+            alpha = 1f,
+            color = bubble.color
+        ))
     }
     
     private fun drawCelebration(canvas: Canvas) {
@@ -853,15 +1073,15 @@ class BubbleView @JvmOverloads constructor(
         
         if (celebrationMode >= 2) {
             for (ray in goldenRays) {
-                ray.length = progress * screenWidth * 0.8f
-                ray.alpha = 1f - progress * 0.8f
+                ray.length = progress * screenWidth * 0.9f
+                ray.alpha = 1f - progress * 0.7f
                 
                 val rad = ray.angle * PI / 180f
                 val endX = ray.x + cos(rad).toFloat() * ray.length
                 val endY = ray.y + sin(rad).toFloat() * ray.length
                 
-                paint.color = Color.argb((ray.alpha * 120).toInt(), 255, 215, 0)
-                paint.strokeWidth = 3f + progress * 5f
+                paint.color = Color.argb((ray.alpha * 150).toInt(), 255, 215, 0)
+                paint.strokeWidth = 4f + progress * 6f
                 paint.style = Paint.Style.STROKE
                 canvas.drawLine(ray.x, ray.y, endX, endY, paint)
             }
@@ -869,7 +1089,7 @@ class BubbleView @JvmOverloads constructor(
         
         if (celebrationMode >= 3) {
             val breathe = (sin(progress * PI * 4f).toFloat() + 1f) / 2f
-            paint.color = Color.argb((breathe * 40).toInt(), 255, 215, 0)
+            paint.color = Color.argb((breathe * 50).toInt(), 255, 215, 0)
             paint.style = Paint.Style.FILL
             canvas.drawColor(paint.color)
         }
@@ -883,18 +1103,83 @@ class BubbleView @JvmOverloads constructor(
         for (p in particles) {
             p.x += p.vx
             p.y += p.vy
-            p.vy += 0.15f
+            p.vy += 0.12f
+            p.vx *= 0.99f
             p.life -= p.decay
             
-            paint.color = p.color
-            paint.alpha = (p.life * 200).toInt()
-            canvas.drawCircle(p.x, p.y, p.size * p.life, paint)
+            when (p.type) {
+                0 -> {
+                    // 圆形粒子
+                    paint.color = p.color
+                    paint.alpha = (p.life * 220).toInt()
+                    paint.style = Paint.Style.FILL
+                    canvas.drawCircle(p.x, p.y, p.size * p.life, paint)
+                }
+                1 -> {
+                    // 星形粒子
+                    paint.color = p.color
+                    paint.alpha = (p.life * 200).toInt()
+                    paint.style = Paint.Style.FILL
+                    drawStar(canvas, p.x, p.y, p.size * p.life)
+                }
+                2 -> {
+                    // 闪光粒子
+                    val sparkle = sin(p.life * PI * 8f).toFloat() * 0.5f + 0.5f
+                    paint.color = p.color
+                    paint.alpha = (p.life * sparkle * 255).toInt()
+                    paint.style = Paint.Style.FILL
+                    canvas.drawCircle(p.x, p.y, p.size * p.life * sparkle, paint)
+                }
+            }
         }
         
         goldenRays.removeAll { it.alpha <= 0 }
         for (ray in goldenRays) {
             ray.alpha -= ray.decay
         }
+        
+        paint.style = Paint.Style.FILL
+    }
+    
+    private fun drawStar(canvas: Canvas, cx: Float, cy: Float, size: Float) {
+        val points = 5
+        val outerR = size
+        val innerR = size * 0.4f
+        
+        bubblePath.reset()
+        for (i in 0 until points * 2) {
+            val angle = (i * 360f / (points * 2) - 90f) * PI / 180f
+            val r = if (i % 2 == 0) outerR else innerR
+            val px = cx + cos(angle).toFloat() * r
+            val py = cy + sin(angle).toFloat() * r
+            if (i == 0) bubblePath.moveTo(px, py) else bubblePath.lineTo(px, py)
+        }
+        bubblePath.close()
+        canvas.drawPath(bubblePath, paint)
+    }
+    
+    private fun drawShockwaves(canvas: Canvas) {
+        shockwaves.removeAll { it.alpha <= 0 }
+        
+        for (sw in shockwaves) {
+            val progress = 1f - sw.alpha
+            sw.radius += (sw.maxRadius - sw.radius) * 0.15f
+            sw.alpha -= 0.04f
+            
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 3f * sw.alpha
+            paint.alpha = (sw.alpha * 180).toInt()
+            paint.color = sw.color
+            canvas.drawCircle(sw.x, sw.y, sw.radius, paint)
+            
+            // 内层冲击波
+            paint.alpha = (sw.alpha * 80).toInt()
+            paint.color = Color.WHITE
+            canvas.drawCircle(sw.x, sw.y, sw.radius * 0.7f, paint)
+        }
+        
+        paint.style = Paint.Style.FILL
+        paint.alpha = 255
     }
     
     private fun triggerGameOver() {
@@ -918,6 +1203,7 @@ class BubbleView @JvmOverloads constructor(
         bubbles.clear()
         particles.clear()
         goldenRays.clear()
+        shockwaves.clear()
         score = 0
         lastMilestoneScore = 0
         isGameOver = false
@@ -941,12 +1227,18 @@ class BubbleView @JvmOverloads constructor(
     
     data class Particle(
         var x: Float, var y: Float, var vx: Float, var vy: Float,
-        var color: Int, var size: Float, var life: Float, var decay: Float
+        var color: Int, var size: Float, var life: Float, var decay: Float,
+        var type: Int = 0
     )
     
     data class GoldenRay(
         var x: Float, var y: Float, var angle: Float,
         var length: Float, var alpha: Float, var decay: Float
+    )
+    
+    data class Shockwave(
+        var x: Float, var y: Float, var radius: Float,
+        var maxRadius: Float, var alpha: Float, var color: Int
     )
     
     data class BaroqueOrnament(
