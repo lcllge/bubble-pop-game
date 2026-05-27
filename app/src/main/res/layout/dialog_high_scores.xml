@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/high_scores_title"
-        android:textColor="#8B6914"
+        android:textColor="#FF4081"
         android:textSize="30sp"
         android:textStyle="bold"
         android:layout_marginBottom="24dp" />
@@ -22,7 +22,7 @@
         android:id="@+id/rank1_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="#DAA520"
+        android:textColor="#FFEA00"
         android:textSize="20sp"
         android:layout_marginBottom="12dp"
         tools:text="🥇 第一名: 0 分" />
@@ -31,7 +31,7 @@
         android:id="@+id/rank2_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="#C0C0C0"
+        android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:layout_marginBottom="12dp"
         tools:text="🥈 第二名: 0 分" />
@@ -40,7 +40,7 @@
         android:id="@+id/rank3_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="#CD7F32"
+        android:textColor="#00E5FF"
         android:textSize="18sp"
         android:layout_marginBottom="24dp"
         tools:text="🥉 第三名: 0 分" />
@@ -52,6 +52,6 @@
         android:text="@string/back"
         android:textSize="18sp"
         android:padding="12dp"
-        android:backgroundTint="#DAA520"
+        android:backgroundTint="#D500F9"
         android:textColor="#FFFFFF" />
 </LinearLayout>

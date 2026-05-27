@@ -225,19 +225,19 @@ class BubbleView @JvmOverloads constructor(
     
     private fun drawBackground(canvas: Canvas) {
         val bg = when (settingsManager.background) {
-            "warm" -> Color.parseColor("#FDF6EC")
-            "lavender" -> Color.parseColor("#F5EEF8")
-            "sage" -> Color.parseColor("#EEF5EE")
-            else -> Color.parseColor("#FDF8F0")
+            "warm" -> Color.parseColor("#1A1A2E")      // 深蓝黑
+            "lavender" -> Color.parseColor("#16213E")   // 午夜蓝
+            "sage" -> Color.parseColor("#0F3460")       // 深海蓝
+            else -> Color.parseColor("#1B1B2F")         // 暗黑紫
         }
         canvas.drawColor(bg)
     }
     
     private fun drawBaroqueDecorations(canvas: Canvas) {
-        val borderWidth = 10f
-        val goldColor = Color.argb(100, 218, 165, 32)
+        val borderWidth = 6f
+        val neonColor = Color.argb(180, 255, 255, 255)
         
-        paint.color = goldColor
+        paint.color = neonColor
         paint.strokeWidth = borderWidth
         paint.style = Paint.Style.STROKE
         
@@ -247,11 +247,11 @@ class BubbleView @JvmOverloads constructor(
             paint
         )
         
-        paint.strokeWidth = 3f
-        paint.alpha = 60
+        paint.strokeWidth = 2f
+        paint.alpha = 80
         canvas.drawRect(
-            borderWidth + 6, borderWidth + 6,
-            screenWidth - borderWidth - 6, screenHeight - borderWidth - 6,
+            borderWidth + 4, borderWidth + 4,
+            screenWidth - borderWidth - 4, screenHeight - borderWidth - 4,
             paint
         )
         
@@ -283,8 +283,8 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun drawCornerOrnament(canvas: Canvas, x: Float, y: Float, scaleX: Float, scaleY: Float) {
-        paint.color = Color.argb(120, 218, 165, 32)
-        paint.strokeWidth = 2.5f
+        paint.color = Color.argb(150, 255, 255, 255)
+        paint.strokeWidth = 2f
         paint.style = Paint.Style.STROKE
         
         canvas.save()
@@ -391,7 +391,7 @@ class BubbleView @JvmOverloads constructor(
             p.phase += 0.5f
             val alpha = (sin(p.phase * PI / 180f).toFloat() + 1f) / 2f * p.alpha
             
-            paint.color = Color.argb((alpha * 180).toInt(), 255, 215, 0)
+            paint.color = Color.argb((alpha * 220).toInt(), 255, 255, 255)
             paint.style = Paint.Style.FILL
             
             val px = p.x * screenWidth + sin(time * p.speed * 0.01f).toFloat() * 10f
@@ -407,7 +407,7 @@ class BubbleView @JvmOverloads constructor(
             if (edgeGlowAlpha >= 1f) edgeGlowDirection = -1f
             if (edgeGlowAlpha <= 0.3f) edgeGlowDirection = 1f
             
-            val glowColor = Color.argb((edgeGlowAlpha * 80).toInt(), 218, 165, 32)
+            val glowColor = Color.argb((edgeGlowAlpha * 120).toInt(), 255, 100, 200)
             val gradientSize = 60f
             
             paint.shader = LinearGradient(0f, 0f, 0f, gradientSize, glowColor, Color.TRANSPARENT, Shader.TileMode.CLAMP)
@@ -504,29 +504,37 @@ class BubbleView @JvmOverloads constructor(
     private fun drawBubble(canvas: Canvas, bubble: Bubble) {
         val isGlowing = bubble.radius >= maxRadius * 0.8f
         
-        // 发光效果
+        // 外层霓虹光晕 - 所有球都有
+        val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
+        val outerGlowRadius = bubble.radius * (1.5f + breathe * 0.3f)
+        val outerGlowAlpha = (80 + breathe * 50).toInt()
+        val outerGlow = RadialGradient(bubble.x, bubble.y, outerGlowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        glowPaint.shader = outerGlow
+        glowPaint.alpha = outerGlowAlpha
+        canvas.drawCircle(bubble.x, bubble.y, outerGlowRadius, glowPaint)
+        glowPaint.shader = null
+        
+        // 发光球额外加强
         if (isGlowing) {
-            val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
-            val glowRadius = bubble.radius * (1.3f + breathe * 0.3f)
-            val glowAlpha = (60 + breathe * 40).toInt()
-            
-            val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            val glowRadius = bubble.radius * (1.8f + breathe * 0.4f)
+            val glowAlpha = (100 + breathe * 60).toInt()
+            val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, intArrayOf(lightenColor(bubble.color, 60), Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
             glowPaint.shader = glowGradient
             glowPaint.alpha = glowAlpha
             canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
             glowPaint.shader = null
         }
         
-        // 主体渐变 - 逼真球体感
+        // 主体渐变 - 高饱和度霓虹感
         val gradient = RadialGradient(
             bubble.x - bubble.radius * 0.3f, bubble.y - bubble.radius * 0.3f,
             bubble.radius * 1.1f,
-            intArrayOf(lightenColor(bubble.color, 80), bubble.color),
-            floatArrayOf(0f, 1f),
+            intArrayOf(Color.WHITE, lightenColor(bubble.color, 40), bubble.color),
+            floatArrayOf(0f, 0.3f, 1f),
             Shader.TileMode.CLAMP
         )
         paint.shader = gradient
-        paint.alpha = (bubble.alpha * 220).toInt()
+        paint.alpha = (bubble.alpha * 240).toInt()
         
         when (bubble.shape) {
             BubbleShape.CIRCLE -> canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
@@ -581,9 +589,9 @@ class BubbleView @JvmOverloads constructor(
         canvas.translate(bubble.x, bubble.y)
         canvas.rotate(bubble.baroqueRotation)
         
-        val alpha = min(120, (r / maxRadius * 120).toInt())
+        val alpha = min(180, (r / maxRadius * 180).toInt())
         baroquePaint.color = Color.argb(alpha, 255, 255, 255)
-        baroquePaint.strokeWidth = max(1f, r * 0.04f)
+        baroquePaint.strokeWidth = max(1.5f, r * 0.05f)
         baroquePaint.style = Paint.Style.STROKE
         
         when (bubble.baroquePattern) {
@@ -988,17 +996,18 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun spawnCelebrationParticles() {
-        if (Random.nextFloat() > 0.4f) return
+        if (Random.nextFloat() > 0.3f) return
         
         val colors = listOf(
-            Color.parseColor("#FFD700"),
-            Color.parseColor("#FF69B4"),
-            Color.parseColor("#00BFFF"),
-            Color.parseColor("#FF6347"),
-            Color.parseColor("#7FFF00"),
-            Color.parseColor("#FF4500"),
-            Color.parseColor("#9370DB"),
-            Color.parseColor("#FF1493"),
+            Color.parseColor("#FF1744"),
+            Color.parseColor("#FF6D00"),
+            Color.parseColor("#FFEA00"),
+            Color.parseColor("#76FF03"),
+            Color.parseColor("#00E5FF"),
+            Color.parseColor("#2979FF"),
+            Color.parseColor("#D500F9"),
+            Color.parseColor("#FF4081"),
+            Color.parseColor("#E040FB"),
             Color.parseColor("#00CED1")
         )
         
@@ -1078,7 +1087,7 @@ class BubbleView @JvmOverloads constructor(
                 val endX = ray.x + cos(rad).toFloat() * ray.length
                 val endY = ray.y + sin(rad).toFloat() * ray.length
                 
-                paint.color = Color.argb((ray.alpha * 150).toInt(), 255, 215, 0)
+                paint.color = Color.argb((ray.alpha * 200).toInt(), 255, 255, 255)
                 paint.strokeWidth = 4f + progress * 6f
                 paint.style = Paint.Style.STROKE
                 canvas.drawLine(ray.x, ray.y, endX, endY, paint)
@@ -1087,7 +1096,7 @@ class BubbleView @JvmOverloads constructor(
         
         if (celebrationMode >= 3) {
             val breathe = (sin(progress * PI * 4f).toFloat() + 1f) / 2f
-            paint.color = Color.argb((breathe * 50).toInt(), 255, 215, 0)
+            paint.color = Color.argb((breathe * 60).toInt(), 255, 100, 200)
             paint.style = Paint.Style.FILL
             canvas.drawColor(paint.color)
         }

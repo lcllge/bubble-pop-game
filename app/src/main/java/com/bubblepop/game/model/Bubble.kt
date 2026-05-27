@@ -30,24 +30,24 @@ data class Bubble(
     var baroquePattern: Int = Random.nextInt(4)
 ) {
     companion object {
-        // 艺术配色：莫兰迪色系 + 宝石色系，强迫症友好
+        // 涂鸦风格：高饱和度霓虹色系，强色彩冲击力
         private val BUBBLE_COLORS = listOf(
-            Color.parseColor("#E8A87C"), // 珊瑚橙
-            Color.parseColor("#D4A574"), // 焦糖棕
-            Color.parseColor("#85CDCA"), // 薄荷绿
-            Color.parseColor("#C38D9E"), // 玫瑰粉
-            Color.parseColor("#A3D1C6"), // 翡翠绿
-            Color.parseColor("#E27D60"), // 番茄红
-            Color.parseColor("#E8B4B8"), // 樱花粉
-            Color.parseColor("#A8D8EA"), // 天空蓝
-            Color.parseColor("#C9B1FF"), // 紫罗兰
-            Color.parseColor("#F6E6CB"), // 奶油黄
-            Color.parseColor("#FFB7B2"), // 蜜桃粉
-            Color.parseColor("#B5EAD7"), // 薄荷蓝
-            Color.parseColor("#FFDAC1"), // 杏桃色
-            Color.parseColor("#E2F0CB"), // 青柠绿
-            Color.parseColor("#F3E8FF"), // 薰衣草紫
-            Color.parseColor("#FF9AA2"), // 珊瑚红
+            Color.parseColor("#FF1744"), // 霓虹红
+            Color.parseColor("#FF6D00"), // 活力橙
+            Color.parseColor("#FFEA00"), // 荧光黄
+            Color.parseColor("#76FF03"), // 荧光绿
+            Color.parseColor("#00E5FF"), // 电光蓝
+            Color.parseColor("#2979FF"), // 宝石蓝
+            Color.parseColor("#D500F9"), // 霓虹紫
+            Color.parseColor("#FF4081"), // 荧光粉
+            Color.parseColor("#F50057"), // 玫红
+            Color.parseColor("#00E676"), // 翠绿
+            Color.parseColor("#FFAB00"), // 琥珀橙
+            Color.parseColor("#651FFF"), // 电光紫
+            Color.parseColor("#00BFA5"), // 青碧
+            Color.parseColor("#FF3D00"), // 火焰红
+            Color.parseColor("#E040FB"), // 亮紫
+            Color.parseColor("#00B0FF"), // 天蓝
         )
         
         fun createRandom(screenWidth: Int, screenHeight: Int, minRadius: Float = 20f, maxRadius: Float = 60f): Bubble {
