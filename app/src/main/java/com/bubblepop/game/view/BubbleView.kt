@@ -605,17 +605,25 @@ class BubbleView @JvmOverloads constructor(
         }
     }
     
+    private var lastMilestoneScore = 0 // 上次触发特效的分数
+    
     private fun checkMilestones() {
         when {
-            score >= 1000 && celebrationMode < 3 -> {
+            // 100分后每加100分触发终极特效
+            score >= 100 && (score - lastMilestoneScore) >= 100 -> {
+                lastMilestoneScore = score / 100 * 100
                 celebrationMode = 3
                 triggerCelebration()
             }
-            score >= 500 && celebrationMode < 2 -> {
+            // 50分触发金光特效
+            score >= 50 && lastMilestoneScore < 50 -> {
+                lastMilestoneScore = 50
                 celebrationMode = 2
                 triggerCelebration()
             }
-            score >= 100 && celebrationMode < 1 -> {
+            // 30分触发礼花特效
+            score >= 30 && lastMilestoneScore < 30 -> {
+                lastMilestoneScore = 30
                 celebrationMode = 1
                 triggerCelebration()
             }
@@ -774,6 +782,7 @@ class BubbleView @JvmOverloads constructor(
         particles.clear()
         goldenRays.clear()
         score = 0
+        lastMilestoneScore = 0
         isGameOver = false
         isPaused = false
         celebrationMode = 0
