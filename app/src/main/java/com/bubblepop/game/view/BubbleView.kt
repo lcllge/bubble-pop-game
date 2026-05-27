@@ -22,6 +22,8 @@ import com.bubblepop.game.manager.SettingsManager
 import com.bubblepop.game.manager.SoundManager
 import com.bubblepop.game.model.Bubble
 import com.bubblepop.game.model.BubbleShape
+import com.bubblepop.game.model.ExplosionType
+import com.bubblepop.game.model.NEON_TEXTS
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -45,6 +47,15 @@ class BubbleView @JvmOverloads constructor(
     private val bubblePath = Path()
     private val clearPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+    }
+    private val neonTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        textAlign = Paint.Align.CENTER
+        isFakeBoldText = true
+    }
+    private val blindBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
     }
     
     private val settingsManager: SettingsManager
@@ -85,6 +96,7 @@ class BubbleView @JvmOverloads constructor(
     private val particles = mutableListOf<Particle>()
     private val goldenRays = mutableListOf<GoldenRay>()
     private val shockwaves = mutableListOf<Shockwave>()
+    private val neonTextEffects = mutableListOf<NeonTextEffect>()
     private var edgeGlowAlpha = 0f
     private var edgeGlowDirection = 1f
     
@@ -219,6 +231,7 @@ class BubbleView @JvmOverloads constructor(
         drawCelebration(canvas)
         drawParticles(canvas)
         drawShockwaves(canvas)
+        drawNeonTextEffects(canvas)
         
         invalidate()
     }
@@ -460,6 +473,11 @@ class BubbleView @JvmOverloads constructor(
         
         bubble.glowPhase += 2f
         bubble.baroqueRotation += 0.3f
+        
+        // 盲盒球抖动效果
+        if (bubble.isBlindBox && !bubble.isPopped) {
+            bubble.shakePhase += 5f
+        }
     }
     
     private fun handleBubbleCollisions() {
@@ -504,30 +522,61 @@ class BubbleView @JvmOverloads constructor(
     private fun drawBubble(canvas: Canvas, bubble: Bubble) {
         val isGlowing = bubble.radius >= maxRadius * 0.8f
         
-        // 外层霓虹光晕 - 所有球都有
+        // 盲盒球抖动偏移
+        var drawX = bubble.x
+        var drawY = bubble.y
+        if (bubble.isBlindBox && !bubble.isPopped) {
+            val shakeX = sin(bubble.shakePhase * PI / 180f).toFloat() * 3f
+            val shakeY = cos(bubble.shakePhase * 1.3f * PI / 180f).toFloat() * 2f
+            drawX += shakeX
+            drawY += shakeY
+        }
+        
+        // 属性光晕 - 根据爆炸属性显示不同颜色
         val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
+        val attrGlowRadius = bubble.radius * (1.6f + breathe * 0.3f)
+        val attrGlowAlpha = if (bubble.isHiddenRare) (120 + breathe * 80).toInt() else (70 + breathe * 40).toInt()
+        val attrColor = bubble.explosionType.primaryColor
+        val attrGlow = RadialGradient(drawX, drawY, attrGlowRadius, intArrayOf(attrGlowColor, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        glowPaint.shader = attrGlow
+        glowPaint.alpha = attrGlowAlpha
+        canvas.drawCircle(drawX, drawY, attrGlowRadius, glowPaint)
+        glowPaint.shader = null
+        
+        // 外层霓虹光晕
         val outerGlowRadius = bubble.radius * (1.5f + breathe * 0.3f)
         val outerGlowAlpha = (80 + breathe * 50).toInt()
-        val outerGlow = RadialGradient(bubble.x, bubble.y, outerGlowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        val outerGlow = RadialGradient(drawX, drawY, outerGlowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
         glowPaint.shader = outerGlow
         glowPaint.alpha = outerGlowAlpha
-        canvas.drawCircle(bubble.x, bubble.y, outerGlowRadius, glowPaint)
+        canvas.drawCircle(drawX, drawY, outerGlowRadius, glowPaint)
         glowPaint.shader = null
         
         // 发光球额外加强
         if (isGlowing) {
             val glowRadius = bubble.radius * (1.8f + breathe * 0.4f)
             val glowAlpha = (100 + breathe * 60).toInt()
-            val glowGradient = RadialGradient(bubble.x, bubble.y, glowRadius, intArrayOf(lightenColor(bubble.color, 60), Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            val glowGradient = RadialGradient(drawX, drawY, glowRadius, intArrayOf(lightenColor(bubble.color, 60), Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
             glowPaint.shader = glowGradient
             glowPaint.alpha = glowAlpha
-            canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
+            canvas.drawCircle(drawX, drawY, glowRadius, glowPaint)
             glowPaint.shader = null
+        }
+        
+        // 隐藏款旋转光环
+        if (bubble.isHiddenRare) {
+            canvas.save()
+            canvas.translate(drawX, drawY)
+            canvas.rotate(bubble.baroqueRotation * 2)
+            blindBoxPaint.color = Color.argb(180, 255, 215, 0)
+            blindBoxPaint.strokeWidth = 2f
+            canvas.drawCircle(0f, 0f, bubble.radius + 8f, blindBoxPaint)
+            canvas.restore()
         }
         
         // 主体渐变 - 高饱和度霓虹感
         val gradient = RadialGradient(
-            bubble.x - bubble.radius * 0.3f, bubble.y - bubble.radius * 0.3f,
+            drawX - bubble.radius * 0.3f, drawY - bubble.radius * 0.3f,
             bubble.radius * 1.1f,
             intArrayOf(Color.WHITE, lightenColor(bubble.color, 40), bubble.color),
             floatArrayOf(0f, 0.3f, 1f),
@@ -537,43 +586,66 @@ class BubbleView @JvmOverloads constructor(
         paint.alpha = (bubble.alpha * 240).toInt()
         
         when (bubble.shape) {
-            BubbleShape.CIRCLE -> canvas.drawCircle(bubble.x, bubble.y, bubble.radius, paint)
-            BubbleShape.ELLIPSE -> drawEllipse(canvas, bubble)
+            BubbleShape.CIRCLE -> canvas.drawCircle(drawX, drawY, bubble.radius, paint)
+            BubbleShape.ELLIPSE -> {
+                canvas.save()
+                canvas.translate(drawX - bubble.x, drawY - bubble.y)
+                drawEllipse(canvas, bubble)
+                canvas.restore()
+            }
         }
         
         // 巴洛克内部装饰
+        canvas.save()
+        canvas.translate(drawX - bubble.x, drawY - bubble.y)
         drawBaroqueOnBubble(canvas, bubble)
+        canvas.restore()
         
         // 高光 - 逼真感
         highlightPaint.color = Color.WHITE
         highlightPaint.alpha = if (isGlowing) 100 else 70
         canvas.drawOval(
-            bubble.x - bubble.radius * 0.35f,
-            bubble.y - bubble.radius * 0.4f,
-            bubble.x - bubble.radius * 0.05f,
-            bubble.y - bubble.radius * 0.1f,
+            drawX - bubble.radius * 0.35f,
+            drawY - bubble.radius * 0.4f,
+            drawX - bubble.radius * 0.05f,
+            drawY - bubble.radius * 0.1f,
             highlightPaint
         )
         
         // 底部反光
         highlightPaint.alpha = 30
         canvas.drawOval(
-            bubble.x - bubble.radius * 0.2f,
-            bubble.y + bubble.radius * 0.15f,
-            bubble.x + bubble.radius * 0.2f,
-            bubble.y + bubble.radius * 0.35f,
+            drawX - bubble.radius * 0.2f,
+            drawY + bubble.radius * 0.15f,
+            drawX + bubble.radius * 0.2f,
+            drawY + bubble.radius * 0.35f,
             highlightPaint
         )
         
+        // 盲盒球标记 - 问号
+        if (bubble.isBlindBox && !bubble.isPopped) {
+            val qAlpha = (150 + breathe * 80).toInt()
+            neonTextPaint.color = Color.argb(qAlpha, 255, 255, 255)
+            neonTextPaint.textSize = bubble.radius * 0.9f
+            canvas.drawText("?", drawX, drawY + bubble.radius * 0.3f, neonTextPaint)
+            
+            // 盲盒虚线框
+            blindBoxPaint.color = Color.argb(qAlpha, 255, 215, 0)
+            blindBoxPaint.strokeWidth = 2f
+            blindBoxPaint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
+            canvas.drawCircle(drawX, drawY, bubble.radius + 5f, blindBoxPaint)
+            blindBoxPaint.pathEffect = null
+        }
+        
         // 发光边框
         if (isGlowing) {
-            val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
+            val breathe2 = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
             paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 2.5f + breathe * 2f
-            paint.alpha = (100 + breathe * 60).toInt()
+            paint.strokeWidth = 2.5f + breathe2 * 2f
+            paint.alpha = (100 + breathe2 * 60).toInt()
             paint.color = Color.WHITE
             paint.shader = null
-            canvas.drawCircle(bubble.x, bubble.y, bubble.radius + 3f, paint)
+            canvas.drawCircle(drawX, drawY, bubble.radius + 3f, paint)
             paint.style = Paint.Style.FILL
         }
         
@@ -904,22 +976,36 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun popBubble(bubble: Bubble) {
+        // 盲盒球检查 - 未达到目标大小不爆炸
+        if (bubble.isBlindBox && bubble.radius < bubble.blindBoxTargetRadius) {
+            // 提示效果：闪烁+震动
+            if (settingsManager.vibrationEnabled) vibrate(20L)
+            spawnBlindBoxHint(bubble)
+            return
+        }
+        
         bubble.isPopped = true
         bubble.popProgress = 0f
         
         val isBig = bubble.radius >= maxRadius * 0.8f
+        val isRare = bubble.isHiddenRare
         
         if (settingsManager.soundEnabled) {
-            soundManager.playPop(isBig)
+            soundManager.playPop(isBig || isRare)
         }
         
         if (settingsManager.vibrationEnabled) {
-            val duration = if (isBig) 80L else 30L
+            val duration = if (isRare) 120L else if (isBig) 80L else 30L
             vibrate(duration)
         }
         
-        spawnPopParticles(bubble)
+        // 触发对应属性爆炸特效
+        spawnExplosionParticles(bubble)
         spawnShockwave(bubble)
+        
+        // 霓虹文字特效
+        spawnNeonTextEffect(bubble)
+        
         checkMilestones()
     }
     
@@ -1189,6 +1275,424 @@ class BubbleView @JvmOverloads constructor(
         paint.alpha = 255
     }
     
+    // ====== 属性爆炸粒子系统 ======
+    private fun spawnExplosionParticles(bubble: Bubble) {
+        val type = bubble.explosionType
+        val isRare = bubble.isHiddenRare
+        val count = if (isRare) 40 else if (bubble.radius >= maxRadius * 0.8f) 30 else 20
+        val speed = if (isRare) 12f else 8f
+        
+        when (type) {
+            ExplosionType.FIRE -> spawnFireExplosion(bubble, count, speed)
+            ExplosionType.LIGHTNING -> spawnLightningExplosion(bubble, count, speed)
+            ExplosionType.THUNDER -> spawnThunderExplosion(bubble, count, speed)
+            ExplosionType.WIND -> spawnWindExplosion(bubble, count, speed)
+            ExplosionType.RAIN -> spawnRainExplosion(bubble, count, speed)
+            ExplosionType.DARK -> spawnDarkExplosion(bubble, count, speed)
+            ExplosionType.LIGHT -> spawnLightExplosion(bubble, count, speed)
+            ExplosionType.ICE -> spawnIceExplosion(bubble, count, speed)
+            ExplosionType.VOID -> spawnVoidExplosion(bubble, count, speed)
+            ExplosionType.STAR -> spawnStarExplosion(bubble, count, speed)
+        }
+    }
+    
+    private fun spawnFireExplosion(bubble: Bubble, count: Int, speed: Float) {
+        for (i in 0 until count) {
+            val angle = i * (360f / count) + Random.nextFloat() * 20f
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 3f
+            val colors = listOf(bubble.explosionType.primaryColor, bubble.explosionType.secondaryColor, bubble.explosionType.particleColor)
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd - 2f,
+                size = Random.nextFloat() * bubble.radius * 0.2f + 4f,
+                color = colors.random(),
+                life = 1f, decay = Random.nextFloat() * 0.015f + 0.01f,
+                type = 0
+            ))
+        }
+        // 火焰上升粒子
+        repeat(15) {
+            particles.add(Particle(
+                x = bubble.x + Random.nextFloat() * bubble.radius - bubble.radius / 2,
+                y = bubble.y,
+                vx = Random.nextFloat() * 2f - 1f,
+                vy = -Random.nextFloat() * 6f - 3f,
+                size = Random.nextFloat() * bubble.radius * 0.15f + 3f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.02f, type = 0
+            ))
+        }
+    }
+    
+    private fun spawnLightningExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 闪电链
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 4f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd,
+                size = Random.nextFloat() * 3f + 2f,
+                color = bubble.explosionType.primaryColor,
+                life = 1f, decay = 0.025f, type = 2
+            ))
+        }
+        // 闪电分支
+        repeat(8) {
+            var px = bubble.x
+            var py = bubble.y
+            repeat(12) { step ->
+                val angle = Random.nextFloat() * 360f
+                val rad = angle * PI / 180f
+                val dist = Random.nextFloat() * 20f + 10f
+                px += cos(rad).toFloat() * dist
+                py += sin(rad).toFloat() * dist
+                particles.add(Particle(
+                    x = px, y = py,
+                    vx = 0f, vy = 0f,
+                    size = max(1f, 5f - step * 0.4f),
+                    color = Color.WHITE,
+                    life = 1f, decay = 0.04f, type = 2
+                ))
+            }
+        }
+    }
+    
+    private fun spawnThunderExplosion(bubble: Bubble, count: Int, speed: Float) {
+        spawnLightningExplosion(bubble, count, speed)
+        // 额外紫色冲击波
+        for (i in 0 until count / 2) {
+            val angle = i * (360f / (count / 2))
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * speed * 1.5f,
+                vy = sin(rad).toFloat() * speed * 1.5f,
+                size = bubble.radius * 0.15f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.015f, type = 0
+            ))
+        }
+    }
+    
+    private fun spawnWindExplosion(bubble: Bubble, count: Int, speed: Float) {
+        for (i in 0 until count * 2) {
+            val angle = Random.nextFloat() * 360f
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed * 1.5f + 2f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd + 3f,
+                vy = sin(rad).toFloat() * spd * 0.5f,
+                size = Random.nextFloat() * 4f + 1f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.012f, type = 0
+            ))
+        }
+        // 旋风粒子
+        repeat(20) {
+            val angle = it * 18f
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x + cos(rad).toFloat() * bubble.radius,
+                y = bubble.y + sin(rad).toFloat() * bubble.radius,
+                vx = cos(rad + PI / 2f).toFloat() * 5f,
+                vy = sin(rad + PI / 2f).toFloat() * 5f,
+                size = 3f,
+                color = bubble.explosionType.secondaryColor,
+                life = 1f, decay = 0.02f, type = 1
+            ))
+        }
+    }
+    
+    private fun spawnRainExplosion(bubble: Bubble, count: Int, speed: Float) {
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * speed * 0.5f,
+                vy = sin(rad).toFloat() * speed * 0.5f,
+                size = Random.nextFloat() * 3f + 2f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.015f, type = 0
+            ))
+        }
+        // 雨滴下落
+        repeat(30) {
+            particles.add(Particle(
+                x = bubble.x + Random.nextFloat() * bubble.radius * 3 - bubble.radius * 1.5f,
+                y = bubble.y - bubble.radius * 2,
+                vx = Random.nextFloat() * 2f - 1f,
+                vy = Random.nextFloat() * 8f + 4f,
+                size = Random.nextFloat() * 2f + 1f,
+                color = bubble.explosionType.secondaryColor,
+                life = 1f, decay = 0.01f, type = 0
+            ))
+        }
+    }
+    
+    private fun spawnDarkExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 暗影吞噬效果 - 向内收缩再向外爆发
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 2f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd,
+                size = Random.nextFloat() * bubble.radius * 0.25f + 5f,
+                color = bubble.explosionType.primaryColor,
+                life = 1f, decay = 0.01f, type = 0
+            ))
+        }
+        // 暗影漩涡
+        repeat(24) {
+            val angle = it * 15f
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x + cos(rad).toFloat() * bubble.radius * 0.5f,
+                y = bubble.y + sin(rad).toFloat() * bubble.radius * 0.5f,
+                vx = cos(rad + PI / 2f).toFloat() * 6f,
+                vy = sin(rad + PI / 2f).toFloat() * 6f,
+                size = 4f,
+                color = bubble.explosionType.secondaryColor,
+                life = 1f, decay = 0.018f, type = 0
+            ))
+        }
+    }
+    
+    private fun spawnLightExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 圣光爆发 - 全屏闪光 + 金色粒子
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed * 1.5f + 3f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd,
+                size = Random.nextFloat() * bubble.radius * 0.2f + 4f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.012f, type = 2
+            ))
+        }
+        // 光柱
+        repeat(12) {
+            val angle = it * 30f
+            val rad = angle * PI / 180f
+            repeat(8) { step ->
+                particles.add(Particle(
+                    x = bubble.x + cos(rad).toFloat() * step * 15f,
+                    y = bubble.y + sin(rad).toFloat() * step * 15f,
+                    vx = 0f, vy = 0f,
+                    size = 6f - step * 0.5f,
+                    color = Color.WHITE,
+                    life = 1f, decay = 0.03f, type = 2
+                ))
+            }
+        }
+    }
+    
+    private fun spawnIceExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 冰霜碎裂
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 2f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd,
+                size = Random.nextFloat() * 5f + 3f,
+                color = bubble.explosionType.particleColor,
+                life = 1f, decay = 0.015f, type = 1
+            ))
+        }
+        // 冰晶碎片
+        repeat(16) {
+            val angle = Random.nextFloat() * 360f
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * speed * 0.8f,
+                vy = sin(rad).toFloat() * speed * 0.8f,
+                size = Random.nextFloat() * 6f + 4f,
+                color = Color.WHITE,
+                life = 1f, decay = 0.01f, type = 1
+            ))
+        }
+    }
+    
+    private fun spawnVoidExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 虚空吞噬 - 黑洞效果
+        for (i in 0 until count * 2) {
+            val angle = i * (360f / (count * 2))
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 3f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd,
+                size = Random.nextFloat() * 8f + 4f,
+                color = bubble.explosionType.primaryColor,
+                life = 1f, decay = 0.008f, type = 0
+            ))
+        }
+        // 虚空裂缝
+        repeat(12) {
+            val angle = it * 30f
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x + cos(rad).toFloat() * bubble.radius,
+                y = bubble.y + sin(rad).toFloat() * bubble.radius,
+                vx = cos(rad).toFloat() * 10f,
+                vy = sin(rad).toFloat() * 10f,
+                size = 8f,
+                color = bubble.explosionType.secondaryColor,
+                life = 1f, decay = 0.015f, type = 2
+            ))
+        }
+    }
+    
+    private fun spawnStarExplosion(bubble: Bubble, count: Int, speed: Float) {
+        // 星辰陨落
+        for (i in 0 until count) {
+            val angle = i * (360f / count)
+            val rad = angle * PI / 180f
+            val spd = Random.nextFloat() * speed + 3f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * spd,
+                vy = sin(rad).toFloat() * spd - 3f,
+                size = Random.nextFloat() * 6f + 3f,
+                color = listOf(bubble.explosionType.primaryColor, bubble.explosionType.secondaryColor, bubble.explosionType.particleColor).random(),
+                life = 1f, decay = 0.01f, type = 2
+            ))
+        }
+        // 流星轨迹
+        repeat(10) {
+            val angle = Random.nextFloat() * 360f
+            val rad = angle * PI / 180f
+            repeat(6) { step ->
+                particles.add(Particle(
+                    x = bubble.x + cos(rad).toFloat() * step * 12f,
+                    y = bubble.y + sin(rad).toFloat() * step * 12f,
+                    vx = cos(rad).toFloat() * 3f,
+                    vy = sin(rad).toFloat() * 3f,
+                    size = 5f - step * 0.6f,
+                    color = Color.WHITE,
+                    life = 1f, decay = 0.025f, type = 2
+                ))
+            }
+        }
+    }
+    
+    // ====== 盲盒提示特效 ======
+    private fun spawnBlindBoxHint(bubble: Bubble) {
+        val hintColor = Color.argb(200, 255, 215, 0)
+        for (i in 0 until 8) {
+            val angle = i * 45f
+            val rad = angle * PI / 180f
+            particles.add(Particle(
+                x = bubble.x, y = bubble.y,
+                vx = cos(rad).toFloat() * 3f,
+                vy = sin(rad).toFloat() * 3f,
+                size = 3f,
+                color = hintColor,
+                life = 1f, decay = 0.04f, type = 2
+            ))
+        }
+        // 显示提示文字
+        neonTextEffects.add(NeonTextEffect(
+            text = "还差一点!",
+            x = bubble.x,
+            y = bubble.y - bubble.radius - 30f,
+            color = hintColor,
+            life = 1f,
+            decay = 0.02f,
+            textSize = bubble.radius * 0.6f
+        ))
+    }
+    
+    // ====== 霓虹文字特效 ======
+    private fun spawnNeonTextEffect(bubble: Bubble) {
+        val type = bubble.explosionType
+        val isRare = bubble.isHiddenRare
+        val text = if (isRare) "★ ${bubble.neonText} ★" else bubble.neonText
+        val color = type.primaryColor
+        
+        neonTextEffects.add(NeonTextEffect(
+            text = text,
+            x = bubble.x,
+            y = bubble.y,
+            color = color,
+            life = 1f,
+            decay = if (isRare) 0.008f else 0.012f,
+            textSize = if (isRare) 48f else 36f,
+            isRare = isRare,
+            scale = 0.3f,
+            targetScale = if (isRare) 2.5f else 1.8f
+        ))
+        
+        // 隐藏款额外加一个全屏特写
+        if (isRare) {
+            neonTextEffects.add(NeonTextEffect(
+                text = "隐藏款!",
+                x = screenWidth / 2f,
+                y = screenHeight / 2f,
+                color = Color.parseColor("#FFD700"),
+                life = 1f,
+                decay = 0.01f,
+                textSize = 60f,
+                isRare = true,
+                scale = 0.1f,
+                targetScale = 3f
+            ))
+        }
+    }
+    
+    private fun drawNeonTextEffects(canvas: Canvas) {
+        neonTextEffects.removeAll { it.life <= 0 }
+        
+        for (effect in neonTextEffects) {
+            effect.life -= effect.decay
+            effect.scale += (effect.targetScale - effect.scale) * 0.15f
+            
+            val alpha = (effect.life * 255).toInt()
+            val currentSize = effect.textSize * effect.scale
+            
+            neonTextPaint.textSize = currentSize
+            neonTextPaint.alpha = alpha
+            
+            // 霓虹描边效果
+            neonTextPaint.style = Paint.Style.STROKE
+            neonTextPaint.strokeWidth = currentSize * 0.08f
+            neonTextPaint.color = Color.WHITE
+            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            
+            // 内部填充
+            neonTextPaint.style = Paint.Style.FILL
+            neonTextPaint.color = effect.color
+            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            
+            // 外发光
+            neonTextPaint.style = Paint.Style.STROKE
+            neonTextPaint.strokeWidth = currentSize * 0.15f
+            neonTextPaint.alpha = alpha / 3
+            neonTextPaint.color = effect.color
+            canvas.drawText(effect.text, effect.x, effect.y, neonTextPaint)
+            
+            neonTextPaint.style = Paint.Style.FILL
+            neonTextPaint.alpha = 255
+        }
+    }
+    
     private fun triggerGameOver() {
         isGameOver = true
         settingsManager.saveHighScore(totalScore)
@@ -1211,6 +1715,7 @@ class BubbleView @JvmOverloads constructor(
         particles.clear()
         goldenRays.clear()
         shockwaves.clear()
+        neonTextEffects.clear()
         score = 0
         lastMilestoneScore = 0
         isGameOver = false
@@ -1256,5 +1761,16 @@ class BubbleView @JvmOverloads constructor(
     data class FloatingGoldParticle(
         var x: Float, var y: Float, var speed: Float,
         var size: Float, var alpha: Float, var phase: Float
+    )
+    
+    data class NeonTextEffect(
+        var text: String,
+        var x: Float, var y: Float,
+        var color: Int,
+        var life: Float, var decay: Float,
+        var textSize: Float,
+        var isRare: Boolean = false,
+        var scale: Float = 0.3f,
+        var targetScale: Float = 1.8f
     )
 }
