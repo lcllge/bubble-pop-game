@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="@drawable/game_over_bg"
+    android:minWidth="280dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/high_scores_title"
+        android:textColor="#8B6914"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp" />
+
+    <TextView
+        android:id="@+id/rank1_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#DAA520"
+        android:textSize="20sp"
+        android:layout_marginBottom="12dp"
+        tools:text="🥇 第一名: 0 分" />
+
+    <TextView
+        android:id="@+id/rank2_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#C0C0C0"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp"
+        tools:text="🥈 第二名: 0 分" />
+
+    <TextView
+        android:id="@+id/rank3_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#CD7F32"
+        android:textSize="18sp"
+        android:layout_marginBottom="24dp"
+        tools:text="🥉 第三名: 0 分" />
+
+    <Button
+        android:id="@+id/back_button"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:text="@string/back"
+        android:textSize="18sp"
+        android:padding="12dp"
+        android:backgroundTint="#DAA520"
+        android:textColor="#FFFFFF" />
+</LinearLayout>

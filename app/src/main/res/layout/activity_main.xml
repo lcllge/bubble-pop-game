@@ -95,7 +95,18 @@
                 android:text="@string/restart"
                 android:textSize="18sp"
                 android:padding="12dp"
+                android:layout_marginBottom="12dp"
                 android:backgroundTint="#DAA520"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/view_scores_button"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:text="@string/view_scores"
+                android:textSize="18sp"
+                android:padding="12dp"
+                android:backgroundTint="#B8860B"
                 android:textColor="#FFFFFF" />
         </LinearLayout>
     </FrameLayout>

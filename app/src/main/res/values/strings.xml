@@ -18,5 +18,11 @@
     <string name="game_over">游戏结束</string>
     <string name="final_score">本轮: %1$d | 累计: %2$d</string>
     <string name="restart">重新开始</string>
+    <string name="view_scores">查看排行榜</string>
     <string name="back">返回</string>
+    <string name="high_scores_title">🏆 排行榜</string>
+    <string name="rank_1">🥇 第一名: %1$d 分</string>
+    <string name="rank_2">🥈 第二名: %1$d 分</string>
+    <string name="rank_3">🥉 第三名: %1$d 分</string>
+    <string name="no_scores">暂无记录</string>
 </resources>

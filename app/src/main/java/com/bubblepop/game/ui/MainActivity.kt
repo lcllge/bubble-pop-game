@@ -1,8 +1,10 @@
 package com.bubblepop.game.ui
 
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.bubblepop.game.R
@@ -45,9 +47,41 @@ class MainActivity : AppCompatActivity() {
             binding.bubbleView.resetGame()
         }
         
+        binding.viewScoresButton.setOnClickListener {
+            showHighScoresDialog()
+        }
+        
         binding.settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
+    }
+    
+    private fun showHighScoresDialog() {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_high_scores)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        
+        val scores = binding.bubbleView.getHighScores()
+        
+        val rank1Text = dialog.findViewById<TextView>(R.id.rank1_text)
+        val rank2Text = dialog.findViewById<TextView>(R.id.rank2_text)
+        val rank3Text = dialog.findViewById<TextView>(R.id.rank3_text)
+        
+        if (scores[0] > 0) {
+            rank1Text.text = getString(R.string.rank_1, scores[0])
+            rank2Text.text = getString(R.string.rank_2, scores.getOrElse(1) { 0 })
+            rank3Text.text = getString(R.string.rank_3, scores.getOrElse(2) { 0 })
+        } else {
+            rank1Text.text = getString(R.string.no_scores)
+            rank2Text.visibility = View.GONE
+            rank3Text.visibility = View.GONE
+        }
+        
+        dialog.findViewById<Button>(R.id.back_button).setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        dialog.show()
     }
     
     private fun updateScoreText(score: Int, totalScore: Int) {
