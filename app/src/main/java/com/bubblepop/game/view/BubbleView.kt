@@ -763,25 +763,25 @@ class BubbleView @JvmOverloads constructor(
         isPaused = true
         celebrationProgress = 0f
         
-        celebrationAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = when (celebrationMode) {
-                1 -> 2500L
-                2 -> 4000L
-                3 -> 6000L
-                else -> 2000L
-            }
-            addUpdateListener {
-                celebrationProgress = it.animatedValue as? Float ?: 0f
-                spawnCelebrationParticles()
-            }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    isPaused = false
-                    celebrationMode = 0
-                }
-            })
-            start()
+        val animator = ValueAnimator.ofFloat(0f, 1f)
+        animator.duration = when (celebrationMode) {
+            1 -> 2500L
+            2 -> 4000L
+            3 -> 6000L
+            else -> 2000L
         }
+        animator.addUpdateListener { anim ->
+            celebrationProgress = anim.animatedValue as Float
+            spawnCelebrationParticles()
+        }
+        animator.addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                isPaused = false
+                celebrationMode = 0
+            }
+        })
+        animator.start()
+        celebrationAnimator = animator
         
         if (celebrationMode >= 2) {
             repeat(12) {
