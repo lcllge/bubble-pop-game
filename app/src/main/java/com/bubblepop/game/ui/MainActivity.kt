@@ -12,7 +12,6 @@ class MainActivity : AppCompatActivity() {
     
     private lateinit var binding: ActivityMainBinding
     private lateinit var scoreText: TextView
-    private lateinit var totalScoreText: TextView
     private lateinit var finalScoreText: TextView
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +20,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         
         scoreText = binding.scoreText
-        totalScoreText = binding.totalScoreText
         finalScoreText = binding.finalScoreText
         updateScoreText(0, 0)
         
