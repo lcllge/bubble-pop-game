@@ -60,7 +60,9 @@ class BubbleView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
         isFakeBoldText = true
     }
-    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
     
     private val settingsManager: SettingsManager
         get() = (context.applicationContext as com.bubblepop.game.BubblePopApplication).settingsManager
@@ -572,17 +574,6 @@ class BubbleView @JvmOverloads constructor(
             glowPaint.shader = null
         }
         
-        // 隐藏款旋转光环
-        if (bubble.isHiddenRare) {
-            canvas.save()
-            canvas.translate(drawX, drawY)
-            canvas.rotate(bubble.baroqueRotation * 2)
-            blindBoxPaint.color = Color.argb(180, 255, 215, 0)
-            blindBoxPaint.strokeWidth = 2f
-            canvas.drawCircle(0f, 0f, bubble.radius + 8f, blindBoxPaint)
-            canvas.restore()
-        }
-        
         // 主体渐变 - 高饱和度霓虹感
         val gradient = RadialGradient(
             drawX - bubble.radius * 0.3f, drawY - bubble.radius * 0.3f,
@@ -627,19 +618,12 @@ class BubbleView @JvmOverloads constructor(
             highlightPaint
         )
         
-        // 盲盒球标记 - 问号 + 虚线框
+        // 盲盒球标记 - 问号
         if (bubble.isBlindBox && !bubble.isPopped) {
             val qAlpha = (150 + breathe * 80).toInt()
             neonTextPaint.color = Color.argb(qAlpha, 255, 255, 255)
             neonTextPaint.textSize = bubble.radius * 0.9f
             canvas.drawText("?", drawX, drawY + bubble.radius * 0.3f, neonTextPaint)
-            
-            // 盲盒虚线框
-            blindBoxPaint.color = Color.argb(qAlpha, 255, 215, 0)
-            blindBoxPaint.strokeWidth = 2f
-            blindBoxPaint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
-            canvas.drawCircle(drawX, drawY, bubble.radius + 5f, blindBoxPaint)
-            blindBoxPaint.pathEffect = null
         }
         
         paint.shader = null
@@ -1001,19 +985,19 @@ class BubbleView @JvmOverloads constructor(
             score >= 100 && (score - lastMilestoneScore) >= 100 -> {
                 lastMilestoneScore = score / 100 * 100
                 celebrationMode = 3
-                celebrationText = "🎉 太厉害了！"
+                celebrationText = "太厉害了！"
                 triggerCelebration()
             }
             score >= 50 && lastMilestoneScore < 50 -> {
                 lastMilestoneScore = 50
                 celebrationMode = 2
-                celebrationText = "🎊 恭喜恭喜！"
+                celebrationText = "恭喜恭喜！"
                 triggerCelebration()
             }
             score >= 30 && lastMilestoneScore < 30 -> {
                 lastMilestoneScore = 30
                 celebrationMode = 1
-                celebrationText = "👏 不错哦！"
+                celebrationText = "不错哦！"
                 triggerCelebration()
             }
         }
@@ -1158,18 +1142,25 @@ class BubbleView @JvmOverloads constructor(
             celebrationPaint.textSize = textSize
             celebrationPaint.textAlign = Paint.Align.CENTER
             celebrationPaint.alpha = (textAlpha * 255).toInt()
-            celebrationPaint.color = Color.WHITE
+            celebrationPaint.style = Paint.Style.FILL
             
-            // 文字阴影
-            celebrationPaint.setShadowLayer(15f, 0f, 0f, Color.parseColor("#FF4081"))
+            // 文字描边
+            celebrationPaint.style = Paint.Style.STROKE
+            celebrationPaint.strokeWidth = textSize * 0.08f
+            celebrationPaint.color = Color.parseColor("#FF4081")
             canvas.drawText(celebrationText, screenWidth / 2f, screenHeight / 2f, celebrationPaint)
-            celebrationPaint.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+            
+            // 文字填充
+            celebrationPaint.style = Paint.Style.FILL
+            celebrationPaint.color = Color.WHITE
+            canvas.drawText(celebrationText, screenWidth / 2f, screenHeight / 2f, celebrationPaint)
             
             // 分数显示
             val scoreText = "得分: $score"
             celebrationPaint.textSize = textSize * 0.4f
             celebrationPaint.alpha = (textAlpha * 200).toInt()
             celebrationPaint.color = Color.parseColor("#FFD700")
+            celebrationPaint.strokeWidth = 0f
             canvas.drawText(scoreText, screenWidth / 2f, screenHeight / 2f + textSize * 0.8f, celebrationPaint)
         }
         
