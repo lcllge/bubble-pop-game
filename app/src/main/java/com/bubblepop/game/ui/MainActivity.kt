@@ -51,8 +51,6 @@ class MainActivity : AppCompatActivity() {
     
     override fun onResume() {
         super.onResume()
-        if (!binding::bubbleView.isInitialized.not()) {
-            updateScoreText(binding.bubbleView.getScore())
-        }
+        updateScoreText(binding.bubbleView.getScore())
     }
 }
