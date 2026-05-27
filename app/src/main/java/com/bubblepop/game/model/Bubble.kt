@@ -9,6 +9,7 @@ enum class BubbleShape {
 
 // 爆炸属性类型
 enum class ExplosionType(val label: String, val primaryColor: Int, val secondaryColor: Int, val particleColor: Int) {
+    NONE("普通", Color.WHITE, Color.WHITE, Color.WHITE),
     FIRE("火焰", Color.parseColor("#FF1744"), Color.parseColor("#FF6D00"), Color.parseColor("#FFEA00")),
     LIGHTNING("雷电", Color.parseColor("#FFEA00"), Color.parseColor("#FFFFFF"), Color.parseColor("#00E5FF")),
     THUNDER("雷霆", Color.parseColor("#7C4DFF"), Color.parseColor("#FFFFFF"), Color.parseColor("#E040FB")),
@@ -21,7 +22,7 @@ enum class ExplosionType(val label: String, val primaryColor: Int, val secondary
     STAR("星辰", Color.parseColor("#FFD700"), Color.parseColor("#FF69B4"), Color.parseColor("#00BFFF"));
 
     companion object {
-        fun random(): ExplosionType = values().random()
+        fun random(): ExplosionType = values().filter { it != NONE }.random()
     }
 }
 
@@ -112,11 +113,14 @@ data class Bubble(
             // 5%概率生成隐藏款
             val isHiddenRare = Random.nextFloat() < 0.05f
             
+            // 35%概率有特殊属性，其余为普通球（只有啵声）
             val explosionType = if (isHiddenRare) {
                 // 隐藏款必定是稀有属性
                 listOf(ExplosionType.VOID, ExplosionType.STAR, ExplosionType.THUNDER).random()
-            } else {
+            } else if (Random.nextFloat() < 0.35f) {
                 ExplosionType.random()
+            } else {
+                ExplosionType.NONE
             }
             
             return Bubble(

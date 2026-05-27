@@ -966,6 +966,7 @@ class BubbleView @JvmOverloads constructor(
         
         val isBig = bubble.radius >= maxRadius * 0.8f
         val isRare = bubble.isHiddenRare
+        val hasAttribute = bubble.explosionType != ExplosionType.NONE
         
         if (settingsManager.soundEnabled) {
             soundManager.playExplosion(bubble.explosionType, isRare)
@@ -976,12 +977,12 @@ class BubbleView @JvmOverloads constructor(
             vibrate(duration)
         }
         
-        // 触发对应属性爆炸特效
-        spawnExplosionParticles(bubble)
-        spawnShockwave(bubble)
-        
-        // 霓虹文字特效
-        spawnNeonTextEffect(bubble)
+        // 只有特殊属性球才触发特效
+        if (hasAttribute) {
+            spawnExplosionParticles(bubble)
+            spawnShockwave(bubble)
+            spawnNeonTextEffect(bubble)
+        }
         
         checkMilestones()
     }

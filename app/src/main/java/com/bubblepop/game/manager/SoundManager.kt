@@ -194,6 +194,7 @@ class SoundManager(private val context: Context) {
     fun playExplosion(type: ExplosionType, isRare: Boolean = false) {
         if (!loaded) return
         when (type) {
+            ExplosionType.NONE -> soundPool.play(popSoundId, 1f, 1f, 0, 0, 1f)
             ExplosionType.FIRE -> generateAndPlayFireSound(isRare)
             ExplosionType.LIGHTNING -> generateAndPlayLightningSound(isRare)
             ExplosionType.THUNDER -> generateAndPlayThunderSound(isRare)
