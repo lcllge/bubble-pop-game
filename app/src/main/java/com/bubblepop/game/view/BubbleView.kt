@@ -194,7 +194,10 @@ class BubbleView @JvmOverloads constructor(
             
             val shouldPauseGrowth = isPressing && pressedBubble != null
             
-            for (bubble in bubbles) {
+            // 按半径排序，大球画在上面
+            val sortedBubbles = bubbles.sortedBy { it.radius }
+            
+            for (bubble in sortedBubbles) {
                 if (bubble.isPopped) {
                     bubble.popProgress += 0.03f
                     drawPoppingBubble(canvas, bubble)
@@ -621,7 +624,7 @@ class BubbleView @JvmOverloads constructor(
             highlightPaint
         )
         
-        // 盲盒球标记 - 问号
+        // 盲盒球标记 - 问号 + 虚线框
         if (bubble.isBlindBox && !bubble.isPopped) {
             val qAlpha = (150 + breathe * 80).toInt()
             neonTextPaint.color = Color.argb(qAlpha, 255, 255, 255)
@@ -634,18 +637,6 @@ class BubbleView @JvmOverloads constructor(
             blindBoxPaint.pathEffect = android.graphics.DashPathEffect(floatArrayOf(8f, 6f), 0f)
             canvas.drawCircle(drawX, drawY, bubble.radius + 5f, blindBoxPaint)
             blindBoxPaint.pathEffect = null
-        }
-        
-        // 发光边框
-        if (isGlowing) {
-            val breathe2 = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 2.5f + breathe2 * 2f
-            paint.alpha = (100 + breathe2 * 60).toInt()
-            paint.color = Color.WHITE
-            paint.shader = null
-            canvas.drawCircle(drawX, drawY, bubble.radius + 3f, paint)
-            paint.style = Paint.Style.FILL
         }
         
         paint.shader = null
@@ -746,42 +737,33 @@ class BubbleView @JvmOverloads constructor(
         val breathe = (sin(System.currentTimeMillis() / 150.0).toFloat() + 1f) / 2f
         val p = pressProgress
         
-        // 多层光环
-        for (i in 3 downTo 0) {
-            val ringRadius = bubble.radius * (1.3f + i * 0.25f + breathe * 0.15f)
-            val ringAlpha = ((1f - i * 0.2f) * (80 + breathe * 60) * p).toInt()
-            val ringColor = lightenColor(bubble.color, 40 + i * 20)
-            
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 3f - i * 0.5f
-            paint.alpha = ringAlpha
-            paint.color = ringColor
-            paint.shader = null
-            canvas.drawCircle(bubble.x, bubble.y, ringRadius, paint)
-        }
-        
-        // 旋转光晕
-        val glowRadius = bubble.radius * (1.8f + breathe * 0.5f)
+        // 辉光呼吸效果 - 无圆线
+        val glowRadius = bubble.radius * (2f + breathe * 0.8f + p * 0.5f)
+        val glowAlpha = (100 + breathe * 80 + p * 100).toInt()
         val glowGradient = RadialGradient(
             bubble.x, bubble.y, glowRadius,
-            intArrayOf(lightenColor(bubble.color, 100), bubble.color, Color.TRANSPARENT),
-            floatArrayOf(0f, 0.5f, 1f),
+            intArrayOf(lightenColor(bubble.color, 120), bubble.color, Color.TRANSPARENT),
+            floatArrayOf(0f, 0.4f, 1f),
             Shader.TileMode.CLAMP
         )
         glowPaint.shader = glowGradient
-        glowPaint.alpha = (120 + breathe * 80).toInt()
+        glowPaint.alpha = glowAlpha
         canvas.drawCircle(bubble.x, bubble.y, glowRadius, glowPaint)
         glowPaint.shader = null
         
-        // 脉冲波纹
-        val pulsePhase = (System.currentTimeMillis() % 800) / 800f
-        val pulseRadius = bubble.radius * (1f + pulsePhase * 1.2f)
-        val pulseAlpha = ((1f - pulsePhase) * 100).toInt()
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.alpha = pulseAlpha
-        paint.color = Color.WHITE
-        canvas.drawCircle(bubble.x, bubble.y, pulseRadius, paint)
+        // 第二层呼吸辉光
+        val glow2Radius = bubble.radius * (1.5f + breathe * 0.6f + p * 0.3f)
+        val glow2Alpha = (80 + breathe * 60 + p * 80).toInt()
+        val glow2Gradient = RadialGradient(
+            bubble.x, bubble.y, glow2Radius,
+            intArrayOf(Color.WHITE, lightenColor(bubble.color, 60), Color.TRANSPARENT),
+            floatArrayOf(0f, 0.3f, 1f),
+            Shader.TileMode.CLAMP
+        )
+        glowPaint.shader = glow2Gradient
+        glowPaint.alpha = glow2Alpha
+        canvas.drawCircle(bubble.x, bubble.y, glow2Radius, glowPaint)
+        glowPaint.shader = null
         
         // 球体本身 - 压缩变形
         val compressScale = 1f - p * 0.15f
@@ -932,8 +914,10 @@ class BubbleView @JvmOverloads constructor(
         var closestBubble: Bubble? = null
         var closestDist = Float.MAX_VALUE
         
-        for (bubble in bubbles) {
-            if (bubble.isPopped) continue
+        // 按半径从小到大排序，优先检测小球（避免大球遮挡小球无法点击）
+        val sortedBubbles = bubbles.filter { !it.isPopped }.sortedBy { it.radius }
+        
+        for (bubble in sortedBubbles) {
             val dx = bubble.x - x
             val dy = bubble.y - y
             val dist = sqrt(dx * dx + dy * dy)
@@ -1626,21 +1610,56 @@ class BubbleView @JvmOverloads constructor(
         val text = if (isRare) "★ ${bubble.neonText} ★" else bubble.neonText
         val color = type.primaryColor
         
-        neonTextEffects.add(NeonTextEffect(
-            text = text,
-            x = bubble.x,
-            y = bubble.y,
-            color = color,
-            life = 1f,
-            decay = if (isRare) 0.008f else 0.012f,
-            textSize = if (isRare) 48f else 36f,
-            isRare = isRare,
-            scale = 0.3f,
-            targetScale = if (isRare) 2.5f else 1.8f
-        ))
+        // 根据球球大小决定文字效果
+        val sizeRatio = bubble.radius / maxRadius
+        
+        if (sizeRatio > 0.25f) {
+            // 大于屏幕1/4的球球：全屏文字特写
+            neonTextEffects.add(NeonTextEffect(
+                text = text,
+                x = screenWidth / 2f,
+                y = screenHeight / 2f,
+                color = color,
+                life = 1f,
+                decay = if (isRare) 0.006f else 0.009f,
+                textSize = min(screenWidth * 0.15f, 80f),
+                isRare = isRare || sizeRatio > 0.4f,
+                scale = 0.1f,
+                targetScale = if (sizeRatio > 0.4f) 4f else 3f
+            ))
+            
+            // 额外加一个属性名称
+            neonTextEffects.add(NeonTextEffect(
+                text = type.label,
+                x = screenWidth / 2f,
+                y = screenHeight / 2f + 120f,
+                color = type.secondaryColor,
+                life = 1f,
+                decay = 0.01f,
+                textSize = 40f,
+                isRare = false,
+                scale = 0.2f,
+                targetScale = 2f
+            ))
+        } else {
+            // 普通大小球球：文字与球球大小成正比
+            val baseSize = bubble.radius * 1.2f
+            neonTextEffects.add(NeonTextEffect(
+                text = text,
+                x = bubble.x,
+                y = bubble.y,
+                color = color,
+                life = 1f,
+                decay = if (isRare) 0.008f else 0.012f,
+                textSize = baseSize,
+                isRare = isRare,
+                scale = 0.3f,
+                targetScale = if (isRare) 2.5f else 1.8f
+            ))
+        }
         
         // 隐藏款额外加一个全屏特写
-        if (isRare) {
+        if (isRare && sizeRatio <= 0.25f) {
             neonTextEffects.add(NeonTextEffect(
                 text = "隐藏款!",
                 x = screenWidth / 2f,
