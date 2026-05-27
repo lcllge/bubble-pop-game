@@ -534,10 +534,10 @@ class BubbleView @JvmOverloads constructor(
             drawY += shakeY
         }
         
-        // 属性光晕 - 根据爆炸属性显示不同颜色
+        // 属性光晕 - 柔和效果
         val breathe = (sin(bubble.glowPhase * PI / 180f).toFloat() + 1f) / 2f
-        val attrGlowRadius = bubble.radius * (1.6f + breathe * 0.3f)
-        val attrGlowAlpha = if (bubble.isHiddenRare) (120 + breathe * 80).toInt() else (70 + breathe * 40).toInt()
+        val attrGlowRadius = bubble.radius * (1.2f + breathe * 0.15f)
+        val attrGlowAlpha = if (bubble.isHiddenRare) (60 + breathe * 30).toInt() else (35 + breathe * 15).toInt()
         val attrColor = bubble.explosionType.primaryColor
         val attrGlow = RadialGradient(drawX, drawY, attrGlowRadius, intArrayOf(attrColor, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
         glowPaint.shader = attrGlow
@@ -545,20 +545,20 @@ class BubbleView @JvmOverloads constructor(
         canvas.drawCircle(drawX, drawY, attrGlowRadius, glowPaint)
         glowPaint.shader = null
         
-        // 外层霓虹光晕
-        val outerGlowRadius = bubble.radius * (1.5f + breathe * 0.3f)
-        val outerGlowAlpha = (80 + breathe * 50).toInt()
+        // 外层光晕 - 柔和
+        val outerGlowRadius = bubble.radius * (1.15f + breathe * 0.1f)
+        val outerGlowAlpha = (40 + breathe * 20).toInt()
         val outerGlow = RadialGradient(drawX, drawY, outerGlowRadius, intArrayOf(bubble.color, Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
         glowPaint.shader = outerGlow
         glowPaint.alpha = outerGlowAlpha
         canvas.drawCircle(drawX, drawY, outerGlowRadius, glowPaint)
         glowPaint.shader = null
         
-        // 发光球额外加强
+        // 发光球额外加强 - 柔和
         if (isGlowing) {
-            val glowRadius = bubble.radius * (1.8f + breathe * 0.4f)
-            val glowAlpha = (100 + breathe * 60).toInt()
-            val glowGradient = RadialGradient(drawX, drawY, glowRadius, intArrayOf(lightenColor(bubble.color, 60), Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+            val glowRadius = bubble.radius * (1.3f + breathe * 0.15f)
+            val glowAlpha = (50 + breathe * 25).toInt()
+            val glowGradient = RadialGradient(drawX, drawY, glowRadius, intArrayOf(lightenColor(bubble.color, 30), Color.TRANSPARENT), floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
             glowPaint.shader = glowGradient
             glowPaint.alpha = glowAlpha
             canvas.drawCircle(drawX, drawY, glowRadius, glowPaint)
@@ -598,12 +598,6 @@ class BubbleView @JvmOverloads constructor(
                 canvas.restore()
             }
         }
-        
-        // 巴洛克内部装饰
-        canvas.save()
-        canvas.translate(drawX - bubble.x, drawY - bubble.y)
-        drawBaroqueOnBubble(canvas, bubble)
-        canvas.restore()
         
         // 高光 - 逼真感
         highlightPaint.color = Color.WHITE
@@ -789,7 +783,6 @@ class BubbleView @JvmOverloads constructor(
         paint.shader = null
         
         canvas.restore()
-        drawBaroqueOnBubble(canvas, bubble)
         
         // 高光
         highlightPaint.color = Color.WHITE
@@ -823,16 +816,6 @@ class BubbleView @JvmOverloads constructor(
         val progress = bubble.popProgress
         val expandedRadius = bubble.radius * (1 + progress * 2.5f)
         val alpha = (220 * (1 - progress * progress)).toInt()
-        
-        // 冲击波
-        if (progress < 0.5f) {
-            val shockAlpha = ((1f - progress * 2) * 150).toInt()
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 4f * (1f - progress)
-            paint.alpha = shockAlpha
-            paint.color = Color.WHITE
-            canvas.drawCircle(bubble.x, bubble.y, expandedRadius * 1.5f, paint)
-        }
         
         // 主爆炸体
         val gradient = RadialGradient(
