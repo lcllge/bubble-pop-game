@@ -116,7 +116,6 @@ class BubbleView @JvmOverloads constructor(
     private val neonTextEffects = mutableListOf<NeonTextEffect>()
     private val celebrationParticles = mutableListOf<CelebrationParticle>()
     private val confettiParticles = mutableListOf<ConfettiParticle>()
-    private val spiralParticles = mutableListOf<SpiralParticle>()
     private val goldenRain = mutableListOf<GoldenRainDrop>()
     private val ringExplosions = mutableListOf<RingExplosion>()
     private var screenShakeX = 0f
@@ -277,12 +276,6 @@ class BubbleView @JvmOverloads constructor(
             drawRingExplosions(canvas)
         } catch (e: Exception) {
             Log.e(TAG, "drawRingExplosions 异常", e)
-        }
-        
-        try {
-            drawSpiralParticles(canvas)
-        } catch (e: Exception) {
-            Log.e(TAG, "drawSpiralParticles 异常", e)
         }
         
         try {
@@ -1152,7 +1145,6 @@ class BubbleView @JvmOverloads constructor(
         fireworks.clear()
         celebrationParticles.clear()
         confettiParticles.clear()
-        spiralParticles.clear()
         goldenRain.clear()
         ringExplosions.clear()
         screenFlashAlpha = 1f
@@ -1196,8 +1188,7 @@ class BubbleView @JvmOverloads constructor(
                 when (effectType) {
                     0 -> if (Random.nextFloat() > 0.3f) launchFirework()
                     1 -> if (Random.nextFloat() > 0.2f) spawnCelebrationBurst()
-                    2 -> if (Random.nextFloat() > 0.5f) spawnSpiralBurst()
-                    3 -> if (Random.nextFloat() > 0.7f) spawnRingExplosion()
+                    2 -> if (Random.nextFloat() > 0.7f) spawnRingExplosion()
                 }
             }
         }
@@ -1331,43 +1322,6 @@ class BubbleView @JvmOverloads constructor(
             rotSpeed = (Random.nextFloat() - 0.5f) * 15f,
             delay = Random.nextFloat() * 0.3f
         ))
-    }
-    
-    private fun spawnSpiralBurst(sizeMultiplier: Float = 1f) {
-        repeat(5 + celebrationMode * 3) {
-            spawnSpiral(sizeMultiplier)
-        }
-    }
-    
-    private fun spawnSpiral(sizeMultiplier: Float = 1f) {
-        if (screenWidth <= 0 || screenHeight <= 0) return
-        
-        val colors = listOf(
-            Color.parseColor("#FF1744"),
-            Color.parseColor("#FFEA00"),
-            Color.parseColor("#00E5FF"),
-            Color.parseColor("#D500F9"),
-            Color.parseColor("#FFD700"),
-            Color.parseColor("#76FF03")
-        )
-        
-        val cx = Random.nextFloat() * screenWidth * 0.6f + screenWidth * 0.2f
-        val cy = Random.nextFloat() * screenHeight * 0.6f + screenHeight * 0.2f
-        
-        repeat(40 + celebrationMode * 20) { i ->
-            spiralParticles.add(SpiralParticle(
-                centerX = cx,
-                centerY = cy,
-                angle = i * 9f,
-                radius = 5f,
-                radiusSpeed = Random.nextFloat() * 3f + 2f,
-                angleSpeed = (if (Random.nextFloat() > 0.5f) 1f else -1f) * (Random.nextFloat() * 5f + 3f),
-                size = (Random.nextFloat() * 6f + 3f) * sizeMultiplier,
-                color = colors[i % colors.size],
-                life = 1f,
-                decay = Random.nextFloat() * 0.008f + 0.005f
-            ))
-        }
     }
     
     private fun spawnGoldenRain() {
@@ -2509,37 +2463,6 @@ class BubbleView @JvmOverloads constructor(
         celebrationParticlePaint.alpha = 255
     }
     
-    private fun drawSpiralParticles(canvas: Canvas) {
-        spiralParticles.removeAll { it.life <= 0 }
-        
-        for (p in spiralParticles.toList()) {
-            p.angle += p.angleSpeed
-            p.radius += p.radiusSpeed
-            p.life -= p.decay
-            
-            val alpha = (p.life * 255).toInt()
-            
-            val x = p.centerX + cos(p.angle * PI / 180f).toFloat() * p.radius
-            val y = p.centerY + sin(p.angle * PI / 180f).toFloat() * p.radius
-            
-            celebrationParticlePaint.color = p.color
-            celebrationParticlePaint.alpha = alpha / 3
-            celebrationParticlePaint.style = Paint.Style.FILL
-            canvas.drawCircle(x, y, p.size * 2.5f, celebrationParticlePaint)
-            
-            celebrationParticlePaint.alpha = alpha / 2
-            canvas.drawCircle(x, y, p.size * 1.5f, celebrationParticlePaint)
-            
-            celebrationParticlePaint.alpha = alpha
-            canvas.drawCircle(x, y, p.size, celebrationParticlePaint)
-            
-            celebrationParticlePaint.alpha = alpha / 2
-            canvas.drawCircle(x, y, p.size * 0.4f, celebrationParticlePaint)
-        }
-        
-        celebrationParticlePaint.alpha = 255
-    }
-    
     private fun drawGoldenRain(canvas: Canvas) {
         goldenRain.removeAll { it.life <= 0 || it.y > screenHeight + 50f }
         
@@ -2655,7 +2578,6 @@ class BubbleView @JvmOverloads constructor(
         neonTextEffects.clear()
         celebrationParticles.clear()
         confettiParticles.clear()
-        spiralParticles.clear()
         goldenRain.clear()
         ringExplosions.clear()
         score = 0
@@ -2702,9 +2624,6 @@ class BubbleView @JvmOverloads constructor(
         val enableCelebrationParticles: Boolean = false,
         val celebrationParticlesDuration: Long = 3000,
         val celebrationParticlesSize: Float = 1f,
-        val enableSpiral: Boolean = false,
-        val spiralDuration: Long = 3000,
-        val spiralSize: Float = 1f,
         val enableRingExplosion: Boolean = false,
         val ringExplosionDuration: Long = 3000,
         val ringExplosionSize: Float = 1f,
@@ -2721,7 +2640,6 @@ class BubbleView @JvmOverloads constructor(
         fireworks.clear()
         celebrationParticles.clear()
         confettiParticles.clear()
-        spiralParticles.clear()
         goldenRain.clear()
         ringExplosions.clear()
         
@@ -2751,7 +2669,6 @@ class BubbleView @JvmOverloads constructor(
             if (config.enableScreenFlash) config.screenFlashDuration else null,
             if (config.enableFirework) config.fireworkDuration else null,
             if (config.enableCelebrationParticles) config.celebrationParticlesDuration else null,
-            if (config.enableSpiral) config.spiralDuration else null,
             if (config.enableRingExplosion) config.ringExplosionDuration else null,
             if (config.enableShockwave) config.shockwaveDuration else null
         ).maxOrNull() ?: config.duration
@@ -2807,12 +2724,6 @@ class BubbleView @JvmOverloads constructor(
                     spawnCelebrationBurst(sizeMultiplier = config.celebrationParticlesSize)
                 }
             }
-            if (config.enableSpiral) {
-                val spiralProgress = elapsed / config.spiralDuration.toFloat()
-                if (spiralProgress < 1f && Random.nextFloat() > 0.5f) {
-                    spawnSpiralBurst(sizeMultiplier = config.spiralSize)
-                }
-            }
             if (config.enableRingExplosion) {
                 val ringProgress = elapsed / config.ringExplosionDuration.toFloat()
                 if (ringProgress < 1f && Random.nextFloat() > 0.7f) {
@@ -2844,9 +2755,6 @@ class BubbleView @JvmOverloads constructor(
         }
         if (config.enableCelebrationParticles) {
             repeat(150 + config.mode * 80) { spawnCelebrationParticle(sizeMultiplier = config.celebrationParticlesSize) }
-        }
-        if (config.enableSpiral) {
-            repeat(30 + config.mode * 20) { spawnSpiral(sizeMultiplier = config.spiralSize) }
         }
         if (config.enableRingExplosion) {
             repeat(3 + config.mode) { spawnRingExplosion(sizeMultiplier = config.ringExplosionSize) }
@@ -2926,13 +2834,6 @@ class BubbleView @JvmOverloads constructor(
         var width: Float, var height: Float, var color: Int,
         var life: Float, var decay: Float, var rotation: Float, var rotSpeed: Float,
         var delay: Float = 0f
-    )
-    
-    data class SpiralParticle(
-        var centerX: Float, var centerY: Float,
-        var angle: Float, var radius: Float, var radiusSpeed: Float,
-        var angleSpeed: Float, var size: Float, var color: Int,
-        var life: Float, var decay: Float
     )
     
     data class GoldenRainDrop(

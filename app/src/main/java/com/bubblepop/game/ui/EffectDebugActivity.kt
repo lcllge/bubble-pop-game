@@ -28,7 +28,6 @@ class EffectDebugActivity : AppCompatActivity() {
     private lateinit var cbScreenFlash: CheckBox
     private lateinit var cbFirework: CheckBox
     private lateinit var cbCelebrationParticles: CheckBox
-    private lateinit var cbSpiral: CheckBox
     private lateinit var cbRingExplosion: CheckBox
     private lateinit var cbShockwave: CheckBox
     private lateinit var cbCelebrationText: CheckBox
@@ -43,8 +42,6 @@ class EffectDebugActivity : AppCompatActivity() {
     private lateinit var etFireworkSize: EditText
     private lateinit var etCelebrationParticlesDuration: EditText
     private lateinit var etCelebrationParticlesSize: EditText
-    private lateinit var etSpiralDuration: EditText
-    private lateinit var etSpiralSize: EditText
     private lateinit var etRingExplosionDuration: EditText
     private lateinit var etRingExplosionSize: EditText
     private lateinit var etShockwaveDuration: EditText
@@ -77,7 +74,6 @@ class EffectDebugActivity : AppCompatActivity() {
         cbScreenFlash = findViewById(R.id.cb_screen_flash)
         cbFirework = findViewById(R.id.cb_firework)
         cbCelebrationParticles = findViewById(R.id.cb_celebration_particles)
-        cbSpiral = findViewById(R.id.cb_spiral)
         cbRingExplosion = findViewById(R.id.cb_ring_explosion)
         cbShockwave = findViewById(R.id.cb_shockwave)
         cbCelebrationText = findViewById(R.id.cb_celebration_text)
@@ -92,8 +88,6 @@ class EffectDebugActivity : AppCompatActivity() {
         etFireworkSize = findViewById(R.id.et_firework_size)
         etCelebrationParticlesDuration = findViewById(R.id.et_celebration_particles_duration)
         etCelebrationParticlesSize = findViewById(R.id.et_celebration_particles_size)
-        etSpiralDuration = findViewById(R.id.et_spiral_duration)
-        etSpiralSize = findViewById(R.id.et_spiral_size)
         etRingExplosionDuration = findViewById(R.id.et_ring_explosion_duration)
         etRingExplosionSize = findViewById(R.id.et_ring_explosion_size)
         etShockwaveDuration = findViewById(R.id.et_shockwave_duration)
@@ -130,7 +124,6 @@ class EffectDebugActivity : AppCompatActivity() {
                 screenFlashDuration = 3000,
                 enableFirework = false,
                 enableCelebrationParticles = false,
-                enableSpiral = false,
                 enableRingExplosion = false,
                 enableShockwave = false,
                 enableCelebrationText = true
@@ -158,9 +151,6 @@ class EffectDebugActivity : AppCompatActivity() {
                 enableCelebrationParticles = true,
                 celebrationParticlesDuration = 5000,
                 celebrationParticlesSize = 1f,
-                enableSpiral = true,
-                spiralDuration = 5000,
-                spiralSize = 1f,
                 enableRingExplosion = true,
                 ringExplosionDuration = 5000,
                 ringExplosionSize = 1f,
@@ -187,9 +177,6 @@ class EffectDebugActivity : AppCompatActivity() {
                 enableCelebrationParticles = true,
                 celebrationParticlesDuration = 4000,
                 celebrationParticlesSize = 1f,
-                enableSpiral = true,
-                spiralDuration = 4000,
-                spiralSize = 1f,
                 enableRingExplosion = false,
                 enableShockwave = true,
                 shockwaveDuration = 4000,
@@ -242,9 +229,6 @@ class EffectDebugActivity : AppCompatActivity() {
             enableCelebrationParticles = cbCelebrationParticles.isChecked,
             celebrationParticlesDuration = getLong(etCelebrationParticlesDuration.text.toString(), 3000),
             celebrationParticlesSize = getFloat(etCelebrationParticlesSize.text.toString(), 1f),
-            enableSpiral = cbSpiral.isChecked,
-            spiralDuration = getLong(etSpiralDuration.text.toString(), 3000),
-            spiralSize = getFloat(etSpiralSize.text.toString(), 1f),
             enableRingExplosion = cbRingExplosion.isChecked,
             ringExplosionDuration = getLong(etRingExplosionDuration.text.toString(), 3000),
             ringExplosionSize = getFloat(etRingExplosionSize.text.toString(), 1f),
