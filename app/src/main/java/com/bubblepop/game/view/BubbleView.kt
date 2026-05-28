@@ -1168,9 +1168,11 @@ class BubbleView @JvmOverloads constructor(
     }
     
     private fun updateAndDrawFireworks(canvas: Canvas) {
-        fireworks.removeAll { it.state == FireworkState.EXPLODED && it.particles.isEmpty() }
+        // 先清理，避免遍历时修改列表
+        val toRemove = fireworks.filter { it.state == FireworkState.EXPLODED && it.particles.isEmpty() }
+        fireworks.removeAll(toRemove)
         
-        for (fw in fireworks) {
+        for (fw in fireworks.toList()) {
             when (fw.state) {
                 FireworkState.RISING -> {
                     fw.y += (fw.y - fw.targetY) * -0.12f
@@ -1223,7 +1225,7 @@ class BubbleView @JvmOverloads constructor(
                     fw.progress += 0.02f
                     fw.particles.removeAll { it.life <= 0 }
                     
-                    for (p in fw.particles) {
+                    for (p in fw.particles.toList()) {
                         p.x += p.vx
                         p.y += p.vy
                         p.vy += 0.06f  // 重力
@@ -1245,7 +1247,7 @@ class BubbleView @JvmOverloads constructor(
                 }
                 FireworkState.EXPLODED -> {
                     fw.particles.removeAll { it.life <= 0 }
-                    for (p in fw.particles) {
+                    for (p in fw.particles.toList()) {
                         p.x += p.vx
                         p.y += p.vy
                         p.vy += 0.06f
@@ -1266,7 +1268,7 @@ class BubbleView @JvmOverloads constructor(
     private fun drawParticles(canvas: Canvas) {
         particles.removeAll { it.life <= 0 }
         
-        for (p in particles) {
+        for (p in particles.toList()) {
             p.x += p.vx
             p.y += p.vy
             p.vy += 0.12f
@@ -1300,7 +1302,7 @@ class BubbleView @JvmOverloads constructor(
         }
         
         goldenRays.removeAll { it.alpha <= 0 }
-        for (ray in goldenRays) {
+        for (ray in goldenRays.toList()) {
             ray.alpha -= ray.decay
         }
         
@@ -1327,7 +1329,7 @@ class BubbleView @JvmOverloads constructor(
     private fun drawShockwaves(canvas: Canvas) {
         shockwaves.removeAll { it.alpha <= 0 }
         
-        for (sw in shockwaves) {
+        for (sw in shockwaves.toList()) {
             val progress = 1f - sw.alpha
             sw.radius += (sw.maxRadius - sw.radius) * 0.15f
             sw.alpha -= 0.04f
@@ -1774,7 +1776,7 @@ class BubbleView @JvmOverloads constructor(
     private fun drawNeonTextEffects(canvas: Canvas) {
         neonTextEffects.removeAll { it.life <= 0 }
         
-        for (effect in neonTextEffects) {
+        for (effect in neonTextEffects.toList()) {
             effect.life -= effect.decay
             effect.scale += (effect.targetScale - effect.scale) * 0.15f
             
