@@ -32,6 +32,12 @@
             android:exported="false"
             android:parentActivityName=".ui.MainActivity"
             android:theme="@style/Theme.BubblePop.Settings" />
+        
+        <activity
+            android:name=".ui.EffectDebugActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.SettingsActivity"
+            android:theme="@style/Theme.BubblePop" />
     </application>
 
 </manifest>

@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.bubblepop.game.view.BubbleView
+        android:id="@+id/debug_bubble_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 控制面板 -->
+    <ScrollView
+        android:id="@+id/control_panel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="特效调试面板"
+                android:textColor="#FFD700"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <!-- 彩带雨 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="彩带雨"
+                android:textColor="#4FC3F7"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            <CheckBox android:id="@+id/cb_confetti" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:checked="true" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_confetti_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#4FC3F7" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_confetti_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#4FC3F7" />
+            </LinearLayout>
+
+            <!-- 金色雨 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="金色雨"
+                android:textColor="#FFD700"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_golden_rain" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:checked="true" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_golden_rain_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#FFD700" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_golden_rain_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#FFD700" />
+            </LinearLayout>
+
+            <!-- 屏幕震动 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="屏幕震动"
+                android:textColor="#FF7043"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_screen_shake" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:checked="true" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_screen_shake_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#FF7043" />
+            </LinearLayout>
+
+            <!-- 屏幕闪光 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="屏幕闪光"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_screen_flash" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:checked="true" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_screen_flash_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#FFFFFF" />
+            </LinearLayout>
+
+            <!-- 礼花 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="礼花"
+                android:textColor="#E040FB"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_firework" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_firework_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#E040FB" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_firework_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#E040FB" />
+            </LinearLayout>
+
+            <!-- 庆祝粒子 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="庆祝粒子"
+                android:textColor="#00E5FF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_celebration_particles" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_celebration_particles_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#00E5FF" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_celebration_particles_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#00E5FF" />
+            </LinearLayout>
+
+            <!-- 螺旋粒子 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="螺旋粒子"
+                android:textColor="#76FF03"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_spiral" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_spiral_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#76FF03" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_spiral_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#76FF03" />
+            </LinearLayout>
+
+            <!-- 环形爆炸 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="环形爆炸"
+                android:textColor="#FF4081"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_ring_explosion" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_ring_explosion_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#FF4081" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="大小:" android:textColor="#AAA" android:textSize="12sp" android:layout_marginStart="8dp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_ring_explosion_size" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="1.0" android:textColor="#FFF" android:textSize="12sp" android:inputType="numberDecimal" android:backgroundTint="#FF4081" />
+            </LinearLayout>
+
+            <!-- 冲击波 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="冲击波"
+                android:textColor="#FF6D00"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_shockwave" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="4dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="时长(ms):" android:textColor="#AAA" android:textSize="12sp" android:layout_marginEnd="4dp" />
+                <EditText android:id="@+id/et_shockwave_duration" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3000" android:textColor="#FFF" android:textSize="12sp" android:inputType="number" android:backgroundTint="#FF6D00" />
+            </LinearLayout>
+
+            <!-- 庆祝文字 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="庆祝文字"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <CheckBox android:id="@+id/cb_celebration_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:checked="true" />
+
+            <!-- 全局设置 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="全局设置"
+                android:textColor="#FFD700"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="特效等级 (1-4)"
+                android:textColor="#4FC3F7"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <SeekBar
+                android:id="@+id/sb_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="3"
+                android:progress="0" />
+
+            <TextView
+                android:id="@+id/tv_mode_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="等级: 1"
+                android:textColor="#FFEA00"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="庆祝文字"
+                android:textColor="#4FC3F7"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <EditText
+                android:id="@+id/et_celebration_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="输入庆祝文字"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:text="太棒了！"
+                android:backgroundTint="#4FC3F7" />
+
+            <Button
+                android:id="@+id/btn_trigger"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="触发特效"
+                android:textSize="18sp"
+                android:padding="12dp"
+                android:backgroundTint="#FF4081"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_quick_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="快速: 彩带+金雨+震动+闪光 (3秒)"
+                android:textSize="14sp"
+                android:padding="8dp"
+                android:backgroundTint="#76FF03"
+                android:textColor="#000000"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_quick_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="快速: 全部特效 (5秒)"
+                android:textSize="14sp"
+                android:padding="8dp"
+                android:backgroundTint="#00E5FF"
+                android:textColor="#000000"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_quick_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="快速: 礼花+粒子+螺旋 (4秒)"
+                android:textSize="14sp"
+                android:padding="8dp"
+                android:backgroundTint="#D500F9"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_toggle_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="隐藏面板"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:backgroundTint="#666666"
+                android:textColor="#FFFFFF"
+                android:layout_marginBottom="8dp" />
+
+            <Button
+                android:id="@+id/btn_back"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="返回设置"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:backgroundTint="#444444"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 悬浮按钮 -->
+    <ImageButton
+        android:id="@+id/btn_toggle_panel_fab"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="@drawable/fab_bg"
+        android:contentDescription="调试面板"
+        android:padding="12dp"
+        android:src="@android:drawable/ic_menu_manage"
+        android:tint="#FFFFFF" />
+
+    <Button
+        android:id="@+id/btn_trigger_fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="16dp"
+        android:text="触发"
+        android:textSize="16sp"
+        android:padding="12dp"
+        android:backgroundTint="#FF4081"
+        android:textColor="#FFFFFF" />
+</FrameLayout>

@@ -24,4 +24,10 @@
         app:entryValues="@array/background_values"
         app:iconSpaceReserved="false" />
 
+    <Preference
+        app:key="pref_effect_debug"
+        app:title="特效调试"
+        app:summary="打开特效调试面板，测试各种效果组合"
+        app:iconSpaceReserved="false" />
+
 </PreferenceScreen>

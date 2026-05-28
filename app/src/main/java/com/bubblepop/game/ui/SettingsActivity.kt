@@ -1,7 +1,9 @@
 package com.bubblepop.game.ui
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import com.bubblepop.game.R
 
@@ -30,6 +32,11 @@ class SettingsActivity : AppCompatActivity() {
     class SettingsFragment : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.settings_preferences, rootKey)
+            
+            findPreference<Preference>("pref_effect_debug")?.setOnPreferenceClickListener {
+                startActivity(Intent(requireContext(), EffectDebugActivity::class.java))
+                true
+            }
         }
     }
 }
